@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    tools:context="com.huang.lochy.MainActivity">
+
+
+    <Spinner
+        android:id="@+id/sp_bote"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        app:layout_constraintBottom_toBottomOf="@+id/sp_serial"
+        app:layout_constraintStart_toEndOf="@+id/textView3"
+        app:layout_constraintTop_toTopOf="@+id/sp_serial" />
+
+
+    <Spinner
+        android:id="@+id/sp_serial"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/bt_open"
+        app:layout_constraintStart_toEndOf="@+id/textView2" />
+
+    <EditText
+        android:background="#fff"
+        android:textSize="14sp"
+        android:id="@+id/ed_input"
+        android:layout_width="0dp"
+        android:layout_height="30dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:inputType="text|textPersonName"
+        android:hint="请输入命令"
+        android:maxLines="1"
+        app:layout_constraintBottom_toBottomOf="@+id/bt_send"
+        app:layout_constraintEnd_toStartOf="@+id/bt_open"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/bt_send" />
+
+    <Button
+        android:id="@+id/bt_send"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:text="发送"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <RadioGroup
+        android:id="@+id/radioGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginStart="8dp"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toTopOf="@+id/sp_serial"
+        app:layout_constraintStart_toStartOf="parent">
+    </RadioGroup>
+
+    <TextView
+        android:textColor="#000"
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="串口号:"
+        app:layout_constraintBottom_toBottomOf="@+id/sp_serial"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/sp_serial" />
+
+    <TextView
+        android:textColor="#000"
+        android:id="@+id/textView3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="波特率:"
+        app:layout_constraintBottom_toBottomOf="@+id/sp_serial"
+        app:layout_constraintStart_toEndOf="@+id/sp_serial"
+        app:layout_constraintTop_toTopOf="@+id/sp_serial" />
+
+    <Button
+        android:id="@+id/bt_open"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:text="开启串口"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/bt_send" />
+
+    <TextView
+        android:id="@+id/msgText"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="3dp"
+        android:background="@android:drawable/editbox_background"
+        android:scrollbars="vertical"
+        android:fadeScrollbars="false"
+        android:text=""
+        android:textColorHint="#03A9F4"
+        app:layout_constraintBottom_toTopOf="@+id/radioGroup"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</android.support.constraint.ConstraintLayout>
