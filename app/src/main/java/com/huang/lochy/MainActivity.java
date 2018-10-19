@@ -1,7 +1,11 @@
 package com.huang.lochy;
 
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.style.ImageSpan;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -36,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     String selectSerialName;
     String selectBaudRate;
 
-    static ClientDispatcher clientDispatcher;
+    ClientDispatcher clientDispatcher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +64,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void OnReceiverData(String portNumberString, byte[] data) {
                 if ( data[0] == (byte)0xAA ) {
-                    refreshLogView(portNumberString + "接收(" + data.length + ")：" + StringTool.byteHexToSting(data) + "\r\n");
+                    if (StringTool.byteHexToSting(data).equals("AA01EA")) {
+                        refreshLogView("\r\n卡片已拿开！\r\n");
+                    }
+                    else {
+                        refreshLogView(portNumberString + "接收(" + data.length + ")：" + StringTool.byteHexToSting(data) + "\r\n");
+                    }
                 }
                 //System.out.println(portNumberString + "接收(" + data.length + ")：" + StringTool.byteHexToSting(data) + "\r\n");
                 if ( (data != null) && (data[0] == SAM_V_FRAME_START_CODE) ) {
@@ -90,6 +99,7 @@ public class MainActivity extends AppCompatActivity {
                     switch ( data[3] ) {
                         case SAM_V_INIT_COM:      //接收到开始解析请求
                             System.out.println("开始解析");
+                            msgTextView.setText("");
                             clientDispatcher = null;
                             clientDispatcher = new ClientDispatcher(MainActivity.this);
                             clientDispatcher.setSerialRXTX(serialManager);
@@ -103,7 +113,9 @@ public class MainActivity extends AppCompatActivity {
                             MainActivity.logViewln( "解析出错：" + errorCode );
                             System.out.println("解析出错：" + errorCode);
                             if ( clientDispatcher != null ) {
-                                clientDispatcher.Close();
+                                //clientDispatcher.Close();
+                                //重新解析
+                                serialManager.send(StringTool.hexStringToBytes( "AA0118" ));
                             }
                             break;
 
@@ -238,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     static void logViewln(String msg) {
-        if (msgTextView.length() > 100) {
+        if (msgTextView.length() > 500) {
             msgTextView.setText("");
         }
         msgTextView.append(msg + "\r\n");
@@ -249,6 +261,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     static void showIDMsg(IDCardData idCardData) {
-        msgTextView.append(idCardData.toString());
+        msgTextView.append(idCardData.toString() + "\r\n");
+
+
+        SpannableString ss = new SpannableString(msgTextView.getText().toString()+"[smile]");
+        //得到要显示图片的资源
+        Drawable d = Drawable.createFromPath("mnt/sdcard/photo.bmp");//new BitmapDrawable(idCardData.PhotoBmp);
+        if (d != null) {
+            //设置高度
+            d.setBounds(0, 0, d.getIntrinsicWidth(), d.getIntrinsicHeight());
+            //跨度底部应与周围文本的基线对齐
+            ImageSpan span = new ImageSpan(d, ImageSpan.ALIGN_BASELINE);
+            //附加图片
+            ss.setSpan(span, msgTextView.getText().length(),msgTextView.getText().length()+"[smile]".length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+            msgTextView.setText(ss);
+            //msgTextView.setText("\r\n");
+            System.out.println(idCardData.PhotoBmp);
+        }
     }
 }

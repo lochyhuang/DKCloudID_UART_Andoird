@@ -2,7 +2,15 @@ package com.huang.lochy;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.RemoteException;
+import android.util.Log;
 
+import com.synjones.bluetooth.DecodeWlt;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 /**
@@ -56,14 +64,6 @@ public class IDCardData {
                 System.arraycopy(idCardBytes, totalLen, bmpByte, 0, bmpByte.length);
                 PhotoBmp = BitmapFactory.decodeByteArray(bmpByte, 0, bmpByte.length);
             }
-
-//            if (photoMsgBytesLen > 0) {
-//                try {
-//                    PhotoBmp = BitmapFactory.decodeByteArray(decode(photoMsgBytes), 0, photoMsgBytes.length);
-//                } catch (RemoteException e) {
-//                    e.printStackTrace();
-//                }
-//            }
 
             byte[] bytes;
             String str;
@@ -151,7 +151,65 @@ public class IDCardData {
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
+
+             if (photoMsgBytesLen > 0) {
+                try {
+                    PhotoBmp = BitmapFactory.decodeByteArray(decode(photoMsgBytes), 0, photoMsgBytes.length);
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }
         }
+    }
+
+    /**
+     * 将加密的照片byte数据通过jni解析
+     *
+     * @param wlt 解密前
+     * @return 解密后
+     * @throws RemoteException 解密错误
+     */
+    public static byte[] decode(byte[] wlt) throws RemoteException {
+//        String bmpPath = Environment.getExternalStorageDirectory().getPath() + "/photo.bmp";
+//        String wltPath = Environment.getExternalStorageDirectory().getPath() + "/photo.wlt";
+        String bmpPath =   "mnt/sdcard/photo.bmp";
+        String wltPath =  "mnt/sdcard/photo.wlt";
+
+        Log.i("bmpPath------------",bmpPath);
+
+        File wltFile = new File(wltPath);
+        File oldBmpPath = new File(bmpPath);
+        if (oldBmpPath.exists() && oldBmpPath.isFile()) {
+            oldBmpPath.delete();
+        }
+
+
+        try {
+            FileOutputStream fos = new FileOutputStream(wltFile);
+            fos.write(wlt);
+            fos.flush();
+            fos.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        DecodeWlt dw = new DecodeWlt();
+
+        int result = dw.Wlt2Bmp(wltPath, bmpPath);
+        byte[] buffer = null;
+        FileInputStream fin;
+        try {
+            File bmpFile = new File(bmpPath);
+            fin = new FileInputStream(bmpFile);
+            int length = fin.available();
+            buffer = new byte[length];
+            fin.read(buffer);
+            fin.close();
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return buffer;
     }
 
     String getNation(int code){

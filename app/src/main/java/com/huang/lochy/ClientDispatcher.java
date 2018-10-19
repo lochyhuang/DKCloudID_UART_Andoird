@@ -145,8 +145,8 @@ public class ClientDispatcher implements Runnable {
                 		IDCardData idCardData = new IDCardData(decrypted);
             			if ( idCardData != null ) {
             				System.out.println("解析成功：" + idCardData.toString());
-            				logViewln(idCardData.toString());
-            				//showIDMsg(idCardData);
+            				//logViewln(idCardData.toString());
+            				showIDMsg(idCardData);
 
             				//一直重复读
             				//serialRXTX.send(StringTool.hexStringToBytes( "AA0118" ));
