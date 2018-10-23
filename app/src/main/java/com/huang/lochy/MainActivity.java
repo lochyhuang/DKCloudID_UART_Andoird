@@ -65,9 +65,10 @@ public class MainActivity extends AppCompatActivity {
             public void OnReceiverData(String portNumberString, byte[] data) {
                 if ( data[0] == (byte)0xAA ) {
                     if (StringTool.byteHexToSting(data).equals("AA01EA")) {
-                        refreshLogView("\r\n卡片已拿开！\r\n");
+                        refreshLogView("卡片已拿开！\r\n");
                     }
                     else {
+                        msgTextView.setText("");
                         refreshLogView(portNumberString + "接收(" + data.length + ")：" + StringTool.byteHexToSting(data) + "\r\n");
                     }
                 }

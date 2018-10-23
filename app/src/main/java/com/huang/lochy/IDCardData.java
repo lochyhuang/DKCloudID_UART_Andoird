@@ -18,21 +18,30 @@ import java.io.UnsupportedEncodingException;
  */
 
 public class IDCardData {
-    public String Name = null;
-    public String Sex = null;
-    public String Nation = null;
-    public String Born = null;
-    public String Address = null;
-    public String IDCardNo = null;
-    public String GrantDept = null;
-    public String UserLifeBegin = null;
-    public String UserLifeEnd = null;
+    public final static int ID_TYPE_CN = 1;       //身份证类型-居民身份证
+    public final static int ID_TYPE_GAT = 2;      //身份证类型-港澳台居民身份证
+    public final static int ID_TYPE_FOREIGN = 3;  //身份证类型-外国人永久居留身份证
+
+    public String Name = null;                   // 姓名
+    public String Sex = null;                    //性别
+    public String Nation = null;                 //名族
+    public String Born = null;                   //出生
+    public String Address = null;                //住址
+    public String IDCardNo = null;               //身份证号
+    public String GrantDept = null;              //签发机关
+    public String UserLifeBegin = null;          //有效期起始日期
+    public String UserLifeEnd = null;            //有效期结束日期
+    public String passport = null;               //通行证号码
+    public String issueNumber = null;            //签发次数
+
     public String reserved = null;
     public String PhotoFileName = null;
     public Bitmap PhotoBmp = null;
+    public byte[] fingerprint = null;
+    public int type = 0;
 
     public IDCardData(byte[] idCardBytes){
-        if (idCardBytes.length < 600) {
+        if (idCardBytes.length < 1295) {
             return;
         }
 
@@ -41,36 +50,46 @@ public class IDCardData {
                 && (idCardBytes[2] == (byte)0xaa)
                 && (idCardBytes[3] == (byte)0x96)
                 && (idCardBytes[4] == (byte)0x69)) {
-            int totalLen = ((idCardBytes[5] & 0xff) << 8) | (idCardBytes[6] & 0xff);
+
+            //int totalLen = ((idCardBytes[5] & 0xff) << 8) | (idCardBytes[6] & 0xff);
             int wordMsgBytesLen = ((idCardBytes[10] & 0xff) << 8) | (idCardBytes[11] & 0xff);
             int photoMsgBytesLen = ((idCardBytes[12] & 0xff) << 8) | (idCardBytes[13] & 0xff);
 
-            if (wordMsgBytesLen < 220) {
-                return;
-            }
-
-            if ( (photoMsgBytesLen + wordMsgBytesLen) > idCardBytes.length) {
-                return;
-            }
-
             byte[] wordMsgBytes = new byte[wordMsgBytesLen];
             byte[] photoMsgBytes = new byte[photoMsgBytesLen];
+            byte[] fingerprintBytes;
 
-            System.arraycopy(idCardBytes, 14, wordMsgBytes, 0, wordMsgBytesLen);
-            System.arraycopy(idCardBytes, 14 + wordMsgBytesLen, photoMsgBytes, 0, photoMsgBytesLen);
+            if (idCardBytes.length == 1295) {   //不带指纹
+                System.arraycopy(idCardBytes, 14, wordMsgBytes, 0, wordMsgBytesLen);
+                System.arraycopy(idCardBytes, 14 + wordMsgBytesLen, photoMsgBytes, 0, photoMsgBytesLen);
+            }
+            else {   //带指纹
+                int fingerprintBytesLen = ((idCardBytes[13] & 0xff) << 8) | (idCardBytes[14] & 0xff);   //指纹长度
+                fingerprintBytes = new byte[fingerprintBytesLen];
+                System.arraycopy(idCardBytes, 16, wordMsgBytes, 0, wordMsgBytesLen);
+                System.arraycopy(idCardBytes, 16 + wordMsgBytesLen, photoMsgBytes, 0, photoMsgBytesLen);
+                System.arraycopy(idCardBytes, 16 + wordMsgBytesLen + photoMsgBytesLen, fingerprintBytes, 0, fingerprintBytesLen);
+            }
 
-            if (idCardBytes.length > totalLen) {
-                byte[] bmpByte = new byte[idCardBytes.length - totalLen];
-                System.arraycopy(idCardBytes, totalLen, bmpByte, 0, bmpByte.length);
-                PhotoBmp = BitmapFactory.decodeByteArray(bmpByte, 0, bmpByte.length);
+            //判断身份证的类型是否为港澳台身份证
+            if (wordMsgBytes[248] == 'J') {
+                type = ID_TYPE_GAT;
+            }
+            else if (wordMsgBytes[248] == 'I') {
+                type = ID_TYPE_FOREIGN;
+            }
+            else {
+                type = ID_TYPE_CN;
             }
 
             byte[] bytes;
             String str;
+            int index = 0;
 
             //姓名
             bytes = new byte[30];
-            System.arraycopy(wordMsgBytes, 0, bytes, 0, 30);
+            System.arraycopy(wordMsgBytes, index, bytes, 0, bytes.length);
+            index += bytes.length;
             try {
                 Name = new String(bytes, "UTF_16LE");
             } catch (UnsupportedEncodingException e) {
@@ -84,23 +103,28 @@ public class IDCardData {
             else {
                 Sex = "女";
             }
+            index += 2;
 
             //名族
-            bytes = new byte[4];
-            System.arraycopy(wordMsgBytes, 32, bytes, 0, 4);
-            try {
-                str = new String(bytes, "UTF_16LE");
-                if (str.length() == 2) {
-                    int nationCode = Integer.valueOf(str,10);
-                    Nation = getNation(nationCode);
+            if (type == ID_TYPE_CN) {
+                bytes = new byte[4];
+                System.arraycopy(wordMsgBytes, index, bytes, 0, bytes.length);
+                try {
+                    str = new String(bytes, "UTF_16LE");
+                    if (str.length() == 2) {
+                        int nationCode = Integer.valueOf(str, 10);
+                        Nation = getNation(nationCode);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
             }
+            index += 4;
 
             //出生
             bytes = new byte[16];
-            System.arraycopy(wordMsgBytes, 36, bytes, 0, bytes.length);
+            System.arraycopy(wordMsgBytes, index, bytes, 0, bytes.length);
+            index += bytes.length;
             try {
                 Born = new String(bytes, "UTF_16LE");
             } catch (UnsupportedEncodingException e) {
@@ -109,7 +133,8 @@ public class IDCardData {
 
             //住址
             bytes = new byte[70];
-            System.arraycopy(wordMsgBytes, 52, bytes, 0, bytes.length);
+            System.arraycopy(wordMsgBytes, index, bytes, 0, bytes.length);
+            index += bytes.length;
             try {
                 Address = new String(bytes, "UTF_16LE");
             } catch (UnsupportedEncodingException e) {
@@ -118,7 +143,8 @@ public class IDCardData {
 
             //身份证号
             bytes = new byte[36];
-            System.arraycopy(wordMsgBytes, 122, bytes, 0, bytes.length);
+            System.arraycopy(wordMsgBytes, index, bytes, 0, bytes.length);
+            index += bytes.length;
             try {
                 IDCardNo = new String(bytes, "UTF_16LE");
             } catch (UnsupportedEncodingException e) {
@@ -127,7 +153,8 @@ public class IDCardData {
 
             //签发机关
             bytes = new byte[30];
-            System.arraycopy(wordMsgBytes, 158, bytes, 0, bytes.length);
+            System.arraycopy(wordMsgBytes, index, bytes, 0, bytes.length);
+            index += bytes.length;
             try {
                 GrantDept = new String(bytes, "UTF_16LE");
             } catch (UnsupportedEncodingException e) {
@@ -136,7 +163,8 @@ public class IDCardData {
 
             //有效起始日期
             bytes = new byte[16];
-            System.arraycopy(wordMsgBytes, 188, bytes, 0, bytes.length);
+            System.arraycopy(wordMsgBytes, index, bytes, 0, bytes.length);
+            index += bytes.length;
             try {
                 UserLifeBegin = new String(bytes, "UTF_16LE");
             } catch (UnsupportedEncodingException e) {
@@ -145,71 +173,46 @@ public class IDCardData {
 
             //有效结束日期
             bytes = new byte[16];
-            System.arraycopy(wordMsgBytes, 204, bytes, 0, bytes.length);
+            System.arraycopy(wordMsgBytes, index, bytes, 0, bytes.length);
+            index += bytes.length;
             try {
                 UserLifeEnd = new String(bytes, "UTF_16LE");
             } catch (UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
 
-             if (photoMsgBytesLen > 0) {
+            //港澳台身份证
+            if (type == ID_TYPE_GAT) {
+                //通行证号码
+                bytes = new byte[18];
+                System.arraycopy(wordMsgBytes, index, bytes, 0, bytes.length);
+                index += bytes.length;
+                try {
+                    passport = new String(bytes, "UTF_16LE");
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+
+                //签发次数
+                bytes = new byte[4];
+                System.arraycopy(wordMsgBytes, index, bytes, 0, bytes.length);
+                index += bytes.length;
+                try {
+                    issueNumber = new String(bytes, "UTF_16LE");
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            //照片解码
+            if (photoMsgBytesLen > 0) {
                 try {
                     PhotoBmp = BitmapFactory.decodeByteArray(decode(photoMsgBytes), 0, photoMsgBytes.length);
-                } catch (RemoteException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
-    }
-
-    /**
-     * 将加密的照片byte数据通过jni解析
-     *
-     * @param wlt 解密前
-     * @return 解密后
-     * @throws RemoteException 解密错误
-     */
-    public static byte[] decode(byte[] wlt) throws RemoteException {
-//        String bmpPath = Environment.getExternalStorageDirectory().getPath() + "/photo.bmp";
-//        String wltPath = Environment.getExternalStorageDirectory().getPath() + "/photo.wlt";
-        String bmpPath =   "mnt/sdcard/photo.bmp";
-        String wltPath =  "mnt/sdcard/photo.wlt";
-
-        Log.i("bmpPath------------",bmpPath);
-
-        File wltFile = new File(wltPath);
-        File oldBmpPath = new File(bmpPath);
-        if (oldBmpPath.exists() && oldBmpPath.isFile()) {
-            oldBmpPath.delete();
-        }
-
-
-        try {
-            FileOutputStream fos = new FileOutputStream(wltFile);
-            fos.write(wlt);
-            fos.flush();
-            fos.close();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        DecodeWlt dw = new DecodeWlt();
-
-        int result = dw.Wlt2Bmp(wltPath, bmpPath);
-        byte[] buffer = null;
-        FileInputStream fin;
-        try {
-            File bmpFile = new File(bmpPath);
-            fin = new FileInputStream(bmpFile);
-            int length = fin.available();
-            buffer = new byte[length];
-            fin.read(buffer);
-            fin.close();
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return buffer;
     }
 
     String getNation(int code){
@@ -276,14 +279,77 @@ public class IDCardData {
         }
     }
 
+    /**
+     * 将加密的照片byte数据通过jni解析
+     *
+     * @param wlt 解密前
+     * @return 解密后
+     * @throws RemoteException 解密错误
+     */
+    public static byte[] decode(byte[] wlt) throws RemoteException {
+//        String bmpPath = Environment.getExternalStorageDirectory().getPath() + "/photo.bmp";
+//        String wltPath = Environment.getExternalStorageDirectory().getPath() + "/photo.wlt";
+        String bmpPath =   "mnt/sdcard/photo.bmp";
+        String wltPath =  "mnt/sdcard/photo.wlt";
+
+        Log.i("bmpPath------------",bmpPath);
+
+        File wltFile = new File(wltPath);
+        File oldBmpPath = new File(bmpPath);
+        if (oldBmpPath.exists() && oldBmpPath.isFile()) {
+            oldBmpPath.delete();
+        }
+
+
+        try {
+            FileOutputStream fos = new FileOutputStream(wltFile);
+            fos.write(wlt);
+            fos.flush();
+            fos.close();
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        DecodeWlt dw = new DecodeWlt();
+
+        int result = dw.Wlt2Bmp(wltPath, bmpPath);
+        byte[] buffer = null;
+        FileInputStream fin;
+        try {
+            File bmpFile = new File(bmpPath);
+            fin = new FileInputStream(bmpFile);
+            int length = fin.available();
+            buffer = new byte[length];
+            fin.read(buffer);
+            fin.close();
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return buffer;
+    }
+
     public String toString() {
-        return    "\r\n姓        名：" + Name
-                + "\r\n性        别：" + Sex
-                + "\r\n名        族：" + Nation
-                + "\r\n出生日期：" + Born
-                + "\r\n住        址：" + Address
-                + "\r\n身份 证号：" + IDCardNo
-                + "\r\n签发 机关：" + GrantDept
-                + "\r\n有  效  期：" + UserLifeBegin + "-" + UserLifeEnd;
+        if (type == ID_TYPE_GAT) {
+            return "\r\n姓        名：" + Name
+                    + "\r\n性        别：" + Sex
+                    + "\r\n出生日期：" + Born
+                    + "\r\n住        址：" + Address
+                    + "\r\n身份 证号：" + IDCardNo
+                    + "\r\n签发 机关：" + GrantDept
+                    + "\r\n有  效  期：" + UserLifeBegin + "-" + UserLifeEnd
+                    + "\r\n通行 证号：" + passport
+                    + "\r\n签发 次数：" + issueNumber;
+        }
+        else {
+            return "\r\n姓        名：" + Name
+                    + "\r\n性        别：" + Sex
+                    + "\r\n名        族：" + Nation
+                    + "\r\n出生日期：" + Born
+                    + "\r\n住        址：" + Address
+                    + "\r\n身份 证号：" + IDCardNo
+                    + "\r\n签发 机关：" + GrantDept
+                    + "\r\n有  效  期：" + UserLifeBegin + "-" + UserLifeEnd;
+        }
     }
 }
