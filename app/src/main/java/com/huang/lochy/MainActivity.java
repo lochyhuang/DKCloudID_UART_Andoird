@@ -47,12 +47,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        msgTextView = findViewById(R.id.msgText);
-        spSerial = findViewById(R.id.sp_serial);
-        edInput = findViewById(R.id.ed_input);
-        btSend = findViewById(R.id.bt_send);
-        spBote = findViewById(R.id.sp_bote);
-        btOpen = findViewById(R.id.bt_open);
+        msgTextView = (TextView) findViewById(R.id.msgText);
+        spSerial = (Spinner) findViewById(R.id.sp_serial);
+        edInput = (EditText) findViewById(R.id.ed_input);
+        btSend = (Button) findViewById(R.id.bt_send);
+        spBote = (Spinner) findViewById(R.id.sp_bote);
+        btOpen = (Button) findViewById(R.id.bt_open);
 
         serialManager = new SerialManager();
 
