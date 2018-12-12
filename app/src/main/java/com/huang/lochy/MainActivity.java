@@ -1,5 +1,6 @@
 package com.huang.lochy;
 
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -267,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
 
         SpannableString ss = new SpannableString(msgTextView.getText().toString()+"[smile]");
         //得到要显示图片的资源
-        Drawable d = Drawable.createFromPath("mnt/sdcard/photo.bmp");//new BitmapDrawable(idCardData.PhotoBmp);
+        Drawable d = new BitmapDrawable(idCardData.PhotoBmp);//Drawable.createFromPath("mnt/sdcard/photo.bmp");
         if (d != null) {
             //设置高度
             d.setBounds(0, 0, d.getIntrinsicWidth(), d.getIntrinsicHeight());

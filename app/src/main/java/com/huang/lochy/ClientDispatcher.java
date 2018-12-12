@@ -33,12 +33,13 @@ public class ClientDispatcher implements Runnable {
 
     private byte[] initData;
     private SerialManager serialRXTX;
-    //private Context mContext;
+    private Context mContext;
     private WeakReference<MainActivity> UIActivity;
 
     private boolean closed = false;
 
     public ClientDispatcher(Context context) {
+        mContext = context;
         UIActivity = new WeakReference<MainActivity>((MainActivity) context);
     }
 
@@ -142,7 +143,7 @@ public class ClientDispatcher implements Runnable {
                         cipher.init(Cipher.DECRYPT_MODE, keySpec);
                 		byte[] decrypted = cipher.doFinal(bodyBuff);
 
-                		IDCardData idCardData = new IDCardData(decrypted);
+                		IDCardData idCardData = new IDCardData(decrypted, mContext);
             			if ( idCardData != null ) {
             				System.out.println("解析成功：" + idCardData.toString());
             				//logViewln(idCardData.toString());
