@@ -1,5 +1,9 @@
 package com.dk.uartnfc;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
 /**
  * Created by lochy on 15/5/12.
  */
@@ -46,6 +50,18 @@ public class StringTool {
             d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
         }
         return d;
+    }
+
+    public static final byte[] inputToByte(InputStream inStream) throws IOException {
+
+        ByteArrayOutputStream swapStream = new ByteArrayOutputStream();
+        byte[] buff = new byte[50000];
+        int rc = 0;
+        while ((rc = inStream.read(buff, 0, 50000)) > 0) {
+            swapStream.write(buff, 0, rc);
+        }
+        byte[] in2b = swapStream.toByteArray();
+        return in2b;
     }
 
     private static byte charToByte(char c) {

@@ -113,51 +113,68 @@ public class ClientDispatcher implements Runnable {
                 
                 //数据接收完成
                 if ( bodyBuff.length > 300 ) {
-                	//解析完成，给NFC模块发送获取AES密钥指令对数据进行解密
-                	byte[] serialRes = serialRXTX.sendWithReturn(StringTool.hexStringToBytes("BB0001368C"), 300);
-                	//数据长度校验
-                	if ( (serialRes == null) || (serialRes.length != 21) ) {
-                        logViewln( "数据长度错误！" );
-                    	Close();
-                		return;
-                	}
-            		
-            		//和校验
-            		byte bcc_sum = 0;
-            		for ( int i=0; i<serialRes.length - 1; i++ ) {
-            			bcc_sum ^= serialRes[i];
-            		}
-            		if ( bcc_sum != serialRes[serialRes.length - 1] ) {
-                        System.out.println("和校验失败");
-                        logViewln( "和校验失败！" );
-                        Close();
-                		return;
-            		}
-            		
-            		//协议校验
-                	if ( (serialRes[0] == SAM_V_FRAME_START_CODE) && (serialRes[3] == SAM_V_GET_AES_KEY_COM) ) {
-                		byte[] aesKey128 = Arrays.copyOfRange(serialRes, 4, 20);
-                		
-                		Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
-                        SecretKeySpec keySpec = new SecretKeySpec(aesKey128, "AES");
-                        cipher.init(Cipher.DECRYPT_MODE, keySpec);
-                		byte[] decrypted = cipher.doFinal(bodyBuff);
-
-                		IDCardData idCardData = new IDCardData(decrypted, mContext);
-            			if ( idCardData != null ) {
-            				System.out.println("解析成功：" + idCardData.toString());
-            				//logViewln(idCardData.toString());
-            				showIDMsg(idCardData);
-
-            				//一直重复读
-            				//serialRXTX.send(StringTool.hexStringToBytes( "AA0118" ));
-            			}
-            			else {
+                    if (bodyBuff[0] == 0x04) {
+                        byte[] decrypted = new byte[bodyBuff.length - 3];
+                        System.arraycopy(bodyBuff, 3, decrypted, 0, decrypted.length);
+                        IDCardData idCardData = new IDCardData(decrypted, mContext);
+                        if ( (idCardData != null) && (idCardData.IDCardNo != null) ) {
+                            System.out.println("解析成功：" + idCardData.toString());
+                            //logViewln(idCardData.toString());
+                            showIDMsg(idCardData);
+                            Close();
+                        }
+                        else {
                             logViewln( "数据错误！" );
-                        	Close();
-                    		return;
-            			}
-                	}
+                            Close();
+                            return;
+                        }
+                    }
+                    else {
+                        //解析完成，给NFC模块发送获取AES密钥指令对数据进行解密
+                        byte[] serialRes = serialRXTX.sendWithReturn(StringTool.hexStringToBytes("BB0001368C"), 300);
+                        //数据长度校验
+                        if ((serialRes == null) || (serialRes.length != 21)) {
+                            logViewln("数据长度错误！");
+                            Close();
+                            return;
+                        }
+
+                        //和校验
+                        byte bcc_sum = 0;
+                        for (int i = 0; i < serialRes.length - 1; i++) {
+                            bcc_sum ^= serialRes[i];
+                        }
+                        if (bcc_sum != serialRes[serialRes.length - 1]) {
+                            System.out.println("和校验失败");
+                            logViewln("和校验失败！");
+                            Close();
+                            return;
+                        }
+
+                        //协议校验
+                        if ((serialRes[0] == SAM_V_FRAME_START_CODE) && (serialRes[3] == SAM_V_GET_AES_KEY_COM)) {
+                            byte[] aesKey128 = Arrays.copyOfRange(serialRes, 4, 20);
+
+                            Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
+                            SecretKeySpec keySpec = new SecretKeySpec(aesKey128, "AES");
+                            cipher.init(Cipher.DECRYPT_MODE, keySpec);
+                            byte[] decrypted = cipher.doFinal(bodyBuff);
+
+                            IDCardData idCardData = new IDCardData(decrypted, mContext);
+                            if (idCardData != null) {
+                                System.out.println("解析成功：" + idCardData.toString());
+                                //logViewln(idCardData.toString());
+                                showIDMsg(idCardData);
+
+                                //一直重复读
+                                //serialRXTX.send(StringTool.hexStringToBytes( "AA0118" ));
+                            } else {
+                                logViewln("数据错误！");
+                                Close();
+                                return;
+                            }
+                        }
+                    }
                 }
                 else {
 	                //将数据发送给NFC模块

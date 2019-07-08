@@ -100,8 +100,8 @@ public abstract class SerialHelper{
 		@Override
 		public void run() {
 			super.run();
-            byte[] buffer = new byte[500];
-            byte[] temp = new byte[500];
+            byte[] buffer = new byte[3000];
+            byte[] temp = new byte[3000];
             int readLen = 0;
             int totalLen = 0;
 			while( !isInterrupted() ) {
@@ -122,36 +122,39 @@ public abstract class SerialHelper{
                     totalLen = 0;
 					int len = mInputStream.read(temp);
 					//int len = mSerialPort.read(temp, 100);
-					if ( (len >= 3) && (temp[0] == (byte)0xBB) ) {
-						totalLen = ((temp[1] & 0xff) << 8) | (temp[2] & 0xff);
-						totalLen += 4;
-						System.arraycopy(temp, 0, buffer, readLen, len);
-						readLen += len;
-						if ( totalLen < 500 ) {
-							timerOutFlag = false;
-							timer.start();
-							while ( (readLen < totalLen) && !timerOutFlag ) {
-								//if (mInputStream.available() > 0) {
-									len = mInputStream.read(temp);
-									//len = mSerialPort.read(temp, 100);
-									if ( len > 0 ) {
-										//System.out.println("长度：" + len);
-										System.arraycopy(temp, 0, buffer, readLen, len);
-										readLen += len;
-										timer.cancel();
-										timer.start();
-									}
-								//}
-							}
-							timer.cancel();
-							byte[] readBytes = new byte[readLen];
-							System.arraycopy(buffer, 0, readBytes, 0, readLen);
-							ComBean ComRecData = new ComBean(sPort, readBytes, readLen);
-							//System.out.println("接收到数据：" + readLen);
-							onDataReceived(ComRecData);
-						}
-					}
-					else if (len > 0){
+					//System.out.println("接收到数据：" + len);
+
+//					if ( (len >= 3) && (temp[0] == (byte)0xBB) ) {
+//						totalLen = ((temp[1] & 0xff) << 8) | (temp[2] & 0xff);
+//						totalLen += 4;
+//						System.arraycopy(temp, 0, buffer, readLen, len);
+//						readLen += len;
+//						if ( totalLen < 500 ) {
+//							timerOutFlag = false;
+//							timer.start();
+//							while ( (readLen < totalLen) && !timerOutFlag ) {
+//								//if (mInputStream.available() > 0) {
+//									len = mInputStream.read(temp);
+//									//len = mSerialPort.read(temp, 100);
+//									if ( len > 0 ) {
+//										//System.out.println("长度：" + len);
+//										System.arraycopy(temp, 0, buffer, readLen, len);
+//										readLen += len;
+//										timer.cancel();
+//										timer.start();
+//									}
+//								//}
+//							}
+//							timer.cancel();
+//							byte[] readBytes = new byte[readLen];
+//							System.arraycopy(buffer, 0, readBytes, 0, readLen);
+//							ComBean ComRecData = new ComBean(sPort, readBytes, readLen);
+//							//System.out.println("接收到数据：" + readLen);
+//							onDataReceived(ComRecData);
+//						}
+//					}
+//					else
+					if (len > 0){
 						byte[] readBytes = new byte[len];
 						System.arraycopy(temp, 0, readBytes, 0, len);
 						ComBean ComRecData = new ComBean(sPort, readBytes, len);

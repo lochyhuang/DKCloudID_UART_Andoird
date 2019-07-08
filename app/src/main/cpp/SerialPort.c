@@ -232,16 +232,16 @@ JNIEXPORT void JNICALL Java_android_1serialport_1api_SerialPort_close
 				return -2;
 			 default: //说明等待时间还未到0秒加500毫秒，mTty的状态发生了变化
 				if (FD_ISSET(mTtyfd, &readfd)) { // 先判断一下mTty这外被监视的句柄是否真的变成可读的了
-					jbyte tempBuff[1024];
+					jbyte tempBuff[30000];
 					jint nread = 0;
 					memset(tempBuff, 0, sizeof(tempBuff));
-					if ((nread = read(mTtyfd, tempBuff, 1024)) > 0) {
+					if ((nread = read(mTtyfd, tempBuff, 30000)) > 0) {
 						LOGI("nread=%d", nread);
-						if (nread >= 1024)
+						if (nread >= 30000)
 							return 0;
 						//tempBuff[nread + 1] = '\0';
 						(*env)->SetByteArrayRegion(env, outputData, 0, nread, tempBuff);
-						char DataBuff[1024] = { 0x00 };
+						char DataBuff[30000] = { 0x00 };
 						jbyte* data = (*env)->GetByteArrayElements(env, outputData, JNI_FALSE);
 						memcpy(DataBuff, data, nread);
 						(*env)->ReleaseByteArrayElements(env, outputData, data, 0);

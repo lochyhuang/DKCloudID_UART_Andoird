@@ -39,6 +39,9 @@ public class SerialPortFinder {
 				mDevices = new Vector<File>();
 				File dev = new File("/dev");
 				File[] files = dev.listFiles();
+				if (files == null) {
+					return mDevices;
+				}
 				int i;
 				for (i=0; i<files.length; i++) {
 					if (files[i].getAbsolutePath().startsWith(mDeviceRoot)) {
