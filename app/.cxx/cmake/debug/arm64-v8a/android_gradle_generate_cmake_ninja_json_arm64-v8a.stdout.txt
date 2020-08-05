@@ -1,0 +1,2 @@
+-- Configuring incomplete, errors occurred!
+See also "D:/androidProject/UART/DKCloudID_AndroidDemo/app/.cxx/cmake/debug/arm64-v8a/CMakeFiles/CMakeOutput.log".

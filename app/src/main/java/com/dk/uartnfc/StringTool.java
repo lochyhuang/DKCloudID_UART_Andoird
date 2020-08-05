@@ -9,6 +9,10 @@ import java.io.InputStream;
  */
 public class StringTool {
     public static String byteHexToSting(byte[] data) {
+        if (data == null) {
+            return null;
+        }
+
         StringBuilder stringBuffer = new StringBuilder();
         for (int aR_data : data) {
             //            stringBuffer.append(Integer.toHexString(aR_data & 0x00ff));

@@ -2,6 +2,7 @@ package com.huang.lochy;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -10,6 +11,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.PictureDrawable;
 import android.os.Bundle;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputFilter;
 import android.text.InputType;
@@ -46,6 +48,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.huang.lochy.ClientDispatcher.SAM_V_APDU_COM;
 import static com.huang.lochy.ClientDispatcher.SAM_V_ERROR_COM;
 import static com.huang.lochy.ClientDispatcher.SAM_V_FRAME_START_CODE;
 import static com.huang.lochy.ClientDispatcher.SAM_V_INIT_COM;
@@ -66,7 +69,13 @@ public class MainActivity extends AppCompatActivity {
     String selectSerialName;
     String selectBaudRate;
 
-    ClientDispatcher clientDispatcher;
+    public static final int NUMBER_OF_REPARSING = 5;              /*解析失败时，重新解析的次数*/
+    DKCloudID dkCloudID = null;
+    static int err_cnt = 0;
+    int schedule = 1;
+    byte[] initData;
+
+    private ProgressDialog readWriteDialog = null;
 
     @SuppressLint("SetTextI18n")
     @Override
@@ -81,12 +90,17 @@ public class MainActivity extends AppCompatActivity {
         spBote = (Spinner) findViewById(R.id.sp_bote);
         btOpen = (Button) findViewById(R.id.bt_open);
 
+        readWriteDialog = new ProgressDialog(MainActivity.this);
+        readWriteDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        // 设置ProgressDialog 标题
+        readWriteDialog.setTitle("请稍等");
+        // 设置ProgressDialog 提示信息
+        readWriteDialog.setMessage("正在读写数据……");
+        readWriteDialog.setMax(100);
+
         serialManager = new SerialManager();
 
         edInput.setText("aa1930453935383732323635363932313031323532373032313234");
-
-        clientDispatcher = new ClientDispatcher(this);
-        clientDispatcher.setSerialRXTX(serialManager);
 
         //如果是护照则跳出机读码输入框
         LayoutInflater factory = LayoutInflater.from(MainActivity.this);
@@ -144,12 +158,7 @@ public class MainActivity extends AppCompatActivity {
                                             }
                                             if ( bcc_sum != returnBytes[returnBytes.length - 1] ) {
                                                 System.out.println("和校验失败");
-                                                runOnUiThread(new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        MainActivity.logViewln("和校验失败！");
-                                                    }
-                                                });
+                                                logViewln("和校验失败！");
                                                 return;
                                             }
 
@@ -158,12 +167,7 @@ public class MainActivity extends AppCompatActivity {
                                             System.arraycopy(returnBytes, 4, dg1_byte, 0, dg1_byte.length);
 
                                             final String dg1_String = new String(dg1_byte, "UTF-8");
-                                            runOnUiThread(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    MainActivity.logViewln( "DG1File： " + dg1_String );
-                                                }
-                                            });
+                                            logViewln( "DG1File： " + dg1_String );
 
                                             //==============================读取文件11======================================
                                             returnBytes = serialManager.sendWithReturn(StringTool.hexStringToBytes("aa02310B"), 200);
@@ -175,12 +179,7 @@ public class MainActivity extends AppCompatActivity {
                                             }
                                             if ( bcc_sum != returnBytes[returnBytes.length - 1] ) {
                                                 System.out.println("和校验失败");
-                                                runOnUiThread(new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        MainActivity.logViewln("和校验失败！");
-                                                    }
-                                                });
+                                                logViewln("和校验失败！");
                                                 return;
                                             }
 
@@ -189,16 +188,11 @@ public class MainActivity extends AppCompatActivity {
                                             System.arraycopy(returnBytes, 4, dg11_byte, 0, dg11_byte.length);
 
                                             final String dg11_String = new String(dg11_byte, "UTF-8");
-                                            runOnUiThread(new Runnable() {
-                                                @Override
-                                                public void run() {
-                                                    MainActivity.logViewln( "DG11File： " + dg11_String );
-                                                    MainActivity.logViewln( "照片读取中..."  );
-                                                }
-                                            });
+                                            logViewln( "DG11File： " + dg11_String );
+                                            logViewln( "照片读取中..."  );
 
                                             //==============================读取文件2======================================
-                                            returnBytes = serialManager.sendWithReturn(StringTool.hexStringToBytes("aa023102"), 5000);
+                                            returnBytes = serialManager.sendWithReturn(StringTool.hexStringToBytes("aa023102"), 10000);
 
                                             runOnUiThread(new Runnable() {
                                                 @Override
@@ -214,12 +208,7 @@ public class MainActivity extends AppCompatActivity {
                                             }
                                             if ( bcc_sum != returnBytes[returnBytes.length - 1] ) {
                                                 System.out.println("和校验失败");
-                                                runOnUiThread(new Runnable() {
-                                                    @Override
-                                                    public void run() {
-                                                        MainActivity.logViewln("和校验失败！");
-                                                    }
-                                                });
+                                                logViewln("和校验失败！");
                                                 return;
                                             }
 
@@ -234,12 +223,7 @@ public class MainActivity extends AppCompatActivity {
                                             if (startIndex < 0) {
                                                 startIndex = dg2_String.indexOf("7F2E");
                                                 if (startIndex < 0) {
-                                                    runOnUiThread(new Runnable() {
-                                                        @Override
-                                                        public void run() {
-                                                            MainActivity.logViewln("未找到图像数据！");
-                                                        }
-                                                    });
+                                                    logViewln("未找到图像数据！");
                                                     return;
                                                 }
                                             }
@@ -268,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
                                                     Bitmap bitmap = ImageUtil.decodeImage(
                                                             MainActivity.this, faceImageInfo.getMimeType(), inputStream);
 
-                                                    final SpannableString ss = new SpannableString(msgTextView.getText().toString().replace("\r\n照片读取中...", "") + "[smile]");
+                                                    final SpannableString ss = new SpannableString(msgTextView.getText().toString() + "[smile]");
                                                     //得到要显示图片的资源
                                                     Drawable d = new BitmapDrawable(bitmap);//Drawable.createFromPath("mnt/sdcard/photo.bmp");
                                                     //设置高度
@@ -333,6 +317,10 @@ public class MainActivity extends AppCompatActivity {
                         if ((data.length >= 3) && (data[0] == (byte)0xAA) ) {
                             if (StringTool.byteHexToSting(data).equals("AA01EA")) {
                                 refreshLogView("卡片已拿开！\r\n");
+                                hidDialog();
+                                if ( dkCloudID != null ) {
+                                    dkCloudID.Close();
+                                }
 
                                 //卡片拿开退出输入框
                                 runOnUiThread(new Runnable() {
@@ -380,15 +368,11 @@ public class MainActivity extends AppCompatActivity {
                         else if ( (data.length >= 3) && (data[0] == SAM_V_FRAME_START_CODE) && (data[3] != 0x31) ) {
                             //数据长度校验
                             if ( data.length < 6 ) {
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        MainActivity.logViewln( "数据长度错误！" );
-                                    }
-                                });
+                                logViewln( "数据长度错误！" );
 
-                                if ( clientDispatcher != null ) {
-                                    clientDispatcher.Close();
+                                hidDialog();
+                                if ( dkCloudID != null ) {
+                                    dkCloudID.Close();
                                 }
                                 return;
                             }
@@ -400,15 +384,11 @@ public class MainActivity extends AppCompatActivity {
                             }
                             if ( bcc_sum != data[data.length - 1] ) {
                                 System.out.println("和校验失败");
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        MainActivity.logViewln( "和校验失败！" );
-                                    }
-                                });
+                                logViewln( "和校验失败！" );
 
-                                if ( clientDispatcher != null ) {
-                                    clientDispatcher.Close();
+                                hidDialog();
+                                if ( dkCloudID != null ) {
+                                    dkCloudID.Close();
                                 }
                                 return;
                             }
@@ -416,6 +396,7 @@ public class MainActivity extends AppCompatActivity {
                             switch ( data[3] ) {
                                 case SAM_V_INIT_COM:      //接收到开始解析请求
                                     System.out.println("开始解析");
+                                    schedule = 1;
                                     runOnUiThread(new Runnable() {
                                         @Override
                                         public void run() {
@@ -423,28 +404,34 @@ public class MainActivity extends AppCompatActivity {
                                         }
                                     });
 
-                                    clientDispatcher = null;
-                                    clientDispatcher = new ClientDispatcher(MainActivity.this);
-                                    clientDispatcher.setSerialRXTX(serialManager);
-                                    byte[] dnBytes = Arrays.copyOfRange( data, 4, data.length - 1 );
-                                    clientDispatcher.setInitData(dnBytes);
-                                    new Thread(clientDispatcher).start();
+                                    if ( dkCloudID != null ) {
+                                        dkCloudID.Close();
+                                    }
+                                    dkCloudID = new DKCloudID();
+                                    initData = Arrays.copyOfRange( data, 4, data.length - 1 );
+                                    continue_to_parse(initData);
+
+                                    break;
+
+                                case SAM_V_APDU_COM:
+                                    byte[] apduBytes = Arrays.copyOfRange( data, 4, data.length - 1 );
+                                    continue_to_parse(apduBytes);
                                     break;
 
                                 case SAM_V_ERROR_COM:
                                     final int errorCode = ((data[4] & 0xff) << 8) | (data[5] & 0xff);
-                                    runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            MainActivity.logViewln( "解析出错：" + errorCode );
-                                        }
-                                    });
+                                    logViewln( "解析出错：" + errorCode );
 
-                                    System.out.println("解析出错：" + errorCode);
-                                    if ( clientDispatcher != null ) {
-                                        //clientDispatcher.Close();
-                                        //重新解析
-                                        serialManager.send(StringTool.hexStringToBytes( "AA0118" ));
+                                    if (err_cnt++ < NUMBER_OF_REPARSING) {
+                                        logViewln( "正在重新解析.." );
+                                        serialManager.send(StringTool.hexStringToBytes("AA0118"));
+                                    }
+                                    else {
+                                        hidDialog();
+                                        if ( dkCloudID != null ) {
+                                            dkCloudID.Close();
+                                        }
+                                        err_cnt = 0;
                                     }
                                     break;
 
@@ -453,11 +440,12 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                         else if (StringTool.byteHexToSting(data).equals("aa01ea")) {
-                            if ( clientDispatcher != null ) {
-                                clientDispatcher.Close();
+                            if ( dkCloudID != null ) {
+                                dkCloudID.Close();
                             }
                             System.out.println("卡片已经拿开");
                             alertDialog.hide();
+                            hidDialog();
                         }
                         else if (!((data.length > 3) && (data[0] == (byte)0xBB) && (data[3] == 0x31))){
                             runOnUiThread(new Runnable() {
@@ -474,6 +462,131 @@ public class MainActivity extends AppCompatActivity {
         });
 
         iniview();
+    }
+
+    public void continue_to_parse(byte[] apduBytes) {
+        logViewln(null);
+        //进度显示
+        if (schedule > 4) {
+            logViewln(String.format("正在解析%%%d", (int)((++schedule) * 100 / 50)));
+            showReadWriteDialog("正在读取身份证信息,请不要移动身份证", (int)(schedule * 100 / 50.0));
+        }
+        else {
+            logViewln(String.format("正在解析%%%d", (int) ((++schedule) * 100 / 5.0)));
+            showReadWriteDialog("正在读取身份证信息,请不要移动身份证", (int) (schedule * 100 / 6.0));
+        }
+
+        byte[] cloudReturnByte = dkCloudID.dkCloudTcpDataExchange(apduBytes);
+
+        if ( (cloudReturnByte == null) || (cloudReturnByte.length < 2)
+                || ((cloudReturnByte[0] != 0x03) && (cloudReturnByte[0] != 0x04)) ) {
+
+            hidDialog();
+            dkCloudID.Close();
+            if ( cloudReturnByte == null ) {
+                logViewln("服务器返回数据为空");
+                if (err_cnt++ < NUMBER_OF_REPARSING) {
+                    logViewln( "正在重新解析.." );
+                    serialManager.send(StringTool.hexStringToBytes("AA0118"));
+                }
+                else {
+                    err_cnt = 0;
+                }
+            }
+            else if (cloudReturnByte[0] == 0x05) {
+                logViewln("解析失败, 请重新读卡");
+                if (err_cnt++ < NUMBER_OF_REPARSING) {
+                    logViewln( "正在重新解析.." );
+                    serialManager.send(StringTool.hexStringToBytes("AA0118"));
+                }
+                else {
+                    err_cnt = 0;
+                }
+            }
+            else if (cloudReturnByte[0] == 0x06) {
+                logViewln("该设备未授权, 请联系www.derkiot.com获取授权");
+            }
+            else if (cloudReturnByte[0] == 0x07) {
+                logViewln("该设备已被禁用, 请联系www.derkiot.com");
+            }
+            else if (cloudReturnByte[0] == 0x08) {
+                logViewln("该账号已被禁用, 请联系www.derkiot.com");
+            }
+            else if (cloudReturnByte[0] == 0x09) {
+                logViewln("余额不足, 请联系www.derkiot.com充值");
+            }
+            else {
+                logViewln("未知错误");
+                if (err_cnt++ < NUMBER_OF_REPARSING) {
+                    logViewln( "正在重新解析.." );
+                    serialManager.send(StringTool.hexStringToBytes("AA0118"));
+                }
+                else {
+                    err_cnt = 0;
+                }
+            }
+            return;
+        }
+
+        if ( (cloudReturnByte.length > 300) && (cloudReturnByte[0] == 0x04) ) {
+            byte[] decrypted = new byte[cloudReturnByte.length - 3];
+            System.arraycopy(cloudReturnByte, 3, decrypted, 0, decrypted.length);
+            IDCardData idCardData = new IDCardData(decrypted, MainActivity.this);
+            if ( idCardData.IDCardNo != null ) {
+                logViewln(null);
+//                showIDMsg(idCardData);
+
+//                //获取照片
+//                initData[0] = (byte)0xA0;
+//                if ( dkCloudID != null ) {
+//                    dkCloudID.Close();
+//                }
+//                dkCloudID = new DKCloudID();
+//                cloudReturnByte = dkCloudID.dkCloudTcpDataExchange(initData);
+//                dkCloudID.Close();
+//                if ( (cloudReturnByte == null) || (cloudReturnByte.length < 4)) {
+//                    logViewln( "获取图片失败！" );
+//                }
+//                else {
+//                    byte[] imageBytes = Arrays.copyOfRange( cloudReturnByte, 3, cloudReturnByte.length );
+//                    idCardData.PhotoBmp = GetNetPicture.getURLimage("http://www.dkcloudid.cn:8090/image/" + StringTool.byteHexToSting(imageBytes) + ".bmp");
+//                }
+
+                System.out.println("解析成功：" + err_cnt + idCardData.toString());
+                logViewln(null);
+                logViewln("解析成功(" + err_cnt + "):");
+                showIDMsg(idCardData);
+                err_cnt = 0;
+                hidDialog();
+            }
+            else {
+                logViewln( "数据错误！" );
+                System.out.println("数据错误！");
+                dkCloudID.Close();
+
+                if (err_cnt++ < NUMBER_OF_REPARSING) {
+                    logViewln( "正在重新解析.." );
+                    serialManager.send(StringTool.hexStringToBytes("AA0118"));
+                }
+                else {
+                    hidDialog();
+                    err_cnt = 0;
+                }
+            }
+        }
+        else if ( (cloudReturnByte != null) && (cloudReturnByte.length < 300) && (cloudReturnByte[0] == 0x03) ) {
+            //将数据发送给NFC模块
+            byte[] bytes = new byte[cloudReturnByte.length + 5];
+            int cmdLen = cloudReturnByte.length + 1;
+            bytes[0] = SAM_V_FRAME_START_CODE;
+            bytes[1] = (byte)((cmdLen & 0xff00) >> 8);
+            bytes[2] = (byte)(cmdLen & 0x00ff);
+            bytes[3] = SAM_V_APDU_COM;
+            System.arraycopy(cloudReturnByte, 0, bytes, 4, cloudReturnByte.length);
+            bytes[bytes.length - 1] = UtilTool.bcc_check( bytes );
+            final byte[] sendApduBytes = bytes;
+            serialManager.send(sendApduBytes);
+        }
     }
 
     @Override
@@ -519,6 +632,7 @@ public class MainActivity extends AppCompatActivity {
         SpAdapter spAdapter2 = new SpAdapter(this);
         spAdapter2.setDatas(botes);
         spBote.setAdapter(spAdapter2);
+        spBote.setSelection(4);
         spBote.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -544,8 +658,8 @@ public class MainActivity extends AppCompatActivity {
                     serialManager.close();
                 }
                 else {
-                    //serialManager.open(selectSerialName, selectBaudRate);
-                    serialManager.open("/dev/ttyS3", "115200");
+                    serialManager.open(selectSerialName, selectBaudRate);
+                    //serialManager.open("/dev/ttyS3", "115200");
                 }
 
                 updataSendBt();
@@ -598,34 +712,118 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    static void logViewln(String msg) {
-        if (msgTextView.length() > 500) {
-            msgTextView.setText("");
-        }
-        msgTextView.append(msg + "\r\n");
-        int offset = msgTextView.getLineCount() * msgTextView.getLineHeight();
-        if(offset > msgTextView.getHeight()){
-            msgTextView.scrollTo(0,offset-msgTextView.getHeight());
-        }
+    private void logViewln(String string) {
+        final String msg = string;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (msg == null) {
+                    msgTextView.setText("");
+                    return;
+                }
+
+                if (msgTextView.length() > 500) {
+                    msgTextView.setText("");
+                }
+                msgTextView.append(msg + "\r\n");
+                int offset = msgTextView.getLineCount() * msgTextView.getLineHeight();
+                if(offset > msgTextView.getHeight()){
+                    msgTextView.scrollTo(0,offset-msgTextView.getHeight());
+                }
+            }
+        });
     }
 
-    static void showIDMsg(IDCardData idCardData) {
-        msgTextView.append(idCardData.toString() + "\r\n");
+    private void showIDMsg(IDCardData msg) {
+        final IDCardData idCardData = msg ;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                msgTextView.append(idCardData.toString() + "\r\n");
 
 
-        SpannableString ss = new SpannableString(msgTextView.getText().toString()+"[smile]");
-        //得到要显示图片的资源
-        Drawable d = new BitmapDrawable(idCardData.PhotoBmp);//Drawable.createFromPath("mnt/sdcard/photo.bmp");
-        if (d != null) {
-            //设置高度
-            d.setBounds(0, 0, d.getIntrinsicWidth(), d.getIntrinsicHeight());
-            //跨度底部应与周围文本的基线对齐
-            ImageSpan span = new ImageSpan(d, ImageSpan.ALIGN_BASELINE);
-            //附加图片
-            ss.setSpan(span, msgTextView.getText().length(),msgTextView.getText().length()+"[smile]".length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
-            msgTextView.setText(ss);
-            //msgTextView.setText("\r\n");
-            System.out.println(idCardData.PhotoBmp);
-        }
+                SpannableString ss = new SpannableString(msgTextView.getText().toString()+"[smile]");
+                //得到要显示图片的资源
+                Drawable d = new BitmapDrawable(idCardData.PhotoBmp);//Drawable.createFromPath("mnt/sdcard/photo.bmp");
+                if (d != null) {
+                    //设置高度
+                    d.setBounds(0, 0, d.getIntrinsicWidth(), d.getIntrinsicHeight());
+                    //跨度底部应与周围文本的基线对齐
+                    ImageSpan span = new ImageSpan(d, ImageSpan.ALIGN_BASELINE);
+                    //附加图片
+                    ss.setSpan(span, msgTextView.getText().length(),msgTextView.getText().length()+"[smile]".length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+                    msgTextView.setText(ss);
+                    //msgTextView.setText("\r\n");
+                    System.out.println(idCardData.PhotoBmp);
+                }
+            }
+        });
     }
+
+    //进度条显示
+    private void showReadWriteDialog(String msg, int rate) {
+        final int theRate = rate;
+        final String theMsg = msg;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if ((theRate == 0) || (theRate == 100)) {
+                    readWriteDialog.dismiss();
+                    readWriteDialog.setProgress(0);
+                } else {
+                    readWriteDialog.setMessage(theMsg);
+                    readWriteDialog.setProgress(theRate);
+                    if (!readWriteDialog.isShowing()) {
+                        readWriteDialog.show();
+                    }
+                }
+            }
+        });
+    }
+
+    //隐藏进度条
+    private void hidDialog() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                readWriteDialog.dismiss();
+            }
+        });
+    }
+
+//    static void logViewln(String msg) {
+//        if (msg == null) {
+//            msgTextView.setText("");
+//            return;
+//        }
+//
+//        if (msgTextView.length() > 500) {
+//            msgTextView.setText("");
+//        }
+//        msgTextView.append(msg + "\r\n");
+//        int offset = msgTextView.getLineCount() * msgTextView.getLineHeight();
+//        if(offset > msgTextView.getHeight()){
+//            msgTextView.scrollTo(0,offset-msgTextView.getHeight());
+//        }
+//    }
+
+//    static void showIDMsg(IDCardData idCardData) {
+//        msgTextView.append(idCardData.toString() + "\r\n");
+//
+//
+//        SpannableString ss = new SpannableString(msgTextView.getText().toString()+"[smile]");
+//        //得到要显示图片的资源
+//        Drawable d = new BitmapDrawable(idCardData.PhotoBmp);//Drawable.createFromPath("mnt/sdcard/photo.bmp");
+//        if (d != null) {
+//            //设置高度
+//            d.setBounds(0, 0, d.getIntrinsicWidth(), d.getIntrinsicHeight());
+//            //跨度底部应与周围文本的基线对齐
+//            ImageSpan span = new ImageSpan(d, ImageSpan.ALIGN_BASELINE);
+//            //附加图片
+//            ss.setSpan(span, msgTextView.getText().length(),msgTextView.getText().length()+"[smile]".length(), Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
+//            msgTextView.setText(ss);
+//            //msgTextView.setText("\r\n");
+//            System.out.println(idCardData.PhotoBmp);
+//        }
+//    }
 }

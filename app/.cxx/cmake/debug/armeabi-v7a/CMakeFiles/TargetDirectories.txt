@@ -1,0 +1,3 @@
+D:/androidProject/UART/DKCloudID_AndroidDemo/app/.cxx/cmake/debug/armeabi-v7a/CMakeFiles/rebuild_cache.dir
+D:/androidProject/UART/DKCloudID_AndroidDemo/app/.cxx/cmake/debug/armeabi-v7a/CMakeFiles/serial_port.dir
+D:/androidProject/UART/DKCloudID_AndroidDemo/app/.cxx/cmake/debug/armeabi-v7a/CMakeFiles/edit_cache.dir
