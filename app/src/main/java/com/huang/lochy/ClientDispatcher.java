@@ -194,7 +194,7 @@ public class ClientDispatcher implements Runnable {
                     case 0x04:
                         byte[] decrypted = new byte[bodyBuff.length - 3];
                         System.arraycopy(bodyBuff, 3, decrypted, 0, decrypted.length);
-                        IDCardData idCardData = new IDCardData(decrypted, mContext);
+                        IDCardData idCardData = new IDCardData(decrypted);
                         if ( idCardData.IDCardNo != null ) {
                             System.out.println("解析成功：" + err_cnt + idCardData.toString());
                             logViewln(null);

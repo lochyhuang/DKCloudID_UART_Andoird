@@ -531,7 +531,7 @@ public class MainActivity extends AppCompatActivity {
         if ( (cloudReturnByte.length > 300) && (cloudReturnByte[0] == 0x04) ) {
             byte[] decrypted = new byte[cloudReturnByte.length - 3];
             System.arraycopy(cloudReturnByte, 3, decrypted, 0, decrypted.length);
-            IDCardData idCardData = new IDCardData(decrypted, MainActivity.this);
+            IDCardData idCardData = new IDCardData(decrypted);
             if ( idCardData.IDCardNo != null ) {
                 logViewln(null);
 //                showIDMsg(idCardData);

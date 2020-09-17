@@ -1,10 +1,8 @@
 package com.huang.lochy;
 
-import android.content.Context;
 import android.graphics.Bitmap;
-import android.os.RemoteException;
+import com.synjones.idcard.android.Wlt2Bitmap;
 
-import com.hdos.idCardUartDevice.publicSecurityIDCardLib;
 import java.io.UnsupportedEncodingException;
 
 /**
@@ -16,9 +14,7 @@ public class IDCardData {
     public final static int ID_TYPE_GAT = 2;      //身份证类型-港澳台居民身份证
     public final static int ID_TYPE_FOREIGN = 3;  //身份证类型-外国人永久居留身份证
 
-    private Context mContext;
-
-    public String Name = null;                   //姓名
+    public String Name = null;                   // 姓名
     public String Sex = null;                    //性别
     public String Nation = null;                 //名族
     public String Born = null;                   //出生
@@ -30,13 +26,11 @@ public class IDCardData {
     public String passport = null;               //通行证号码
     public String issueNumber = null;            //签发次数
 
-    public String reserved = null;
     public Bitmap PhotoBmp = null;
     public byte[] fingerprintBytes = null;       //指纹数据
     public int type = 0;
 
-    public IDCardData(byte[] idCardBytes, Context context){
-        mContext = context;
+    public IDCardData(byte[] idCardBytes){
 
         if (idCardBytes.length < 1295) {
             return;
@@ -203,8 +197,10 @@ public class IDCardData {
             //照片解码
             if (photoMsgBytesLen > 0) {
                 try {
-                    PhotoBmp = decode(photoMsgBytes);
-                    //System.out.println("解码后的照片为：" + PhotoBmp);
+                    byte[] buf=new byte[Wlt2Bitmap.IMG_LENGTH];
+                    if (1 == Wlt2Bitmap.wlt2Bmp (photoMsgBytes, buf)) {
+                        PhotoBmp = Wlt2Bitmap.Bgr2Bitmap (buf);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -273,79 +269,6 @@ public class IDCardData {
             case 97:  return "其他";
             case 98:  return "外国血统中国籍人士";
             default : return "";
-        }
-    }
-
-    /**
-     * 将加密的照片byte数据通过jni解析
-     *
-     * @param wlt 解密前
-     * @return 解密后
-     * @throws RemoteException 解密错误
-     */
-    private Bitmap decode(byte[] wlt) throws RemoteException {
-        String pkName = "/data/data/" + mContext.getPackageName() + "/lib/libwlt2bmp.so";
-        publicSecurityIDCardLib dw = new publicSecurityIDCardLib();
-
-        byte[] returnBytes = dw.HdosIdUnpack(wlt, pkName);
-
-        //System.out.println("pkName" + pkName + StringTool.byteHexToSting(returnBytes));
-
-        byte[] pBmpFile = new byte[38556];
-        int pSex1;
-
-        if (returnBytes != null) {
-            byte pName2;
-            for(pSex1 = 0; pSex1 < 19278; ++pSex1) {
-                pName2 = returnBytes[pSex1];
-                returnBytes[pSex1] = returnBytes['際' - pSex1];
-                returnBytes['際' - pSex1] = pName2;
-            }
-
-            int pNation1;
-            for(pSex1 = 0; pSex1 < 126; ++pSex1) {
-                for(pNation1 = 0; pNation1 < 153; ++pNation1) {
-                    pName2 = returnBytes[pNation1 + pSex1 * 102 * 3];
-                    returnBytes[pNation1 + pSex1 * 102 * 3] = returnBytes[305 - pNation1 + pSex1 * 102 * 3];
-                    returnBytes[305 - pNation1 + pSex1 * 102 * 3] = pName2;
-                }
-            }
-
-            System.arraycopy(returnBytes, 0, pBmpFile, 0, 38556);
-
-            int []colors = convertByteToColor(pBmpFile);
-
-            return Bitmap.createBitmap(colors, 102, 126,Bitmap.Config.ARGB_8888);
-        }
-
-        return null;
-    }
-
-    public final int[] convertByteToColor(byte[] data) {
-        int var2;
-        if ((var2 = data.length) == 0) {
-            return null;
-        } else {
-            byte var3 = 0;
-            if (var2 % 3 != 0) {
-                var3 = 1;
-            }
-
-            int[] var4 = new int[var2 / 3 + var3];
-            int var5;
-            if (var3 == 0) {
-                for(var5 = 0; var5 < var4.length; ++var5) {
-                    var4[var5] = data[var5 * 3] << 16 & 16711680 | data[var5 * 3 + 1] << 8 & '\uff00' | data[var5 * 3 + 2] & 255 | -16777216;
-                }
-            } else {
-                for(var5 = 0; var5 < var4.length - 1; ++var5) {
-                    var4[var5] = data[var5 * 3] << 16 & 16711680 | data[var5 * 3 + 1] << 8 & '\uff00' | data[var5 * 3 + 2] & 255 | -16777216;
-                }
-
-                var4[var4.length - 1] = -16777216;
-            }
-
-            return var4;
         }
     }
 
