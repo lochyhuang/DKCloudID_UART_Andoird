@@ -1,3 +1,0 @@
-CMake Error: Error in cmake code at
-D:/androidProject/UART/DKCloudID_AndroidDemo/app/CMakeLists.txt:39:
-Parse error.  Expected "(", got unquoted argument with text ":=".

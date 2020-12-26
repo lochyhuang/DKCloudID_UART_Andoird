@@ -1,3 +1,3 @@
 # ninja log v5
-1	1122	0	CMakeFiles/serial_port.dir/src/main/cpp/SerialPort.c.o	2d921313a3f7902f
-1124	1801	0	../../../../build/intermediates/cmake/debug/obj/armeabi-v7a/libserial_port.so	4851d64feee9694c
+1	564	0	CMakeFiles/serial_port.dir/src/main/cpp/SerialPort.c.o	2d921313a3f7902f
+565	897	0	../../../../build/intermediates/cmake/debug/obj/armeabi-v7a/libserial_port.so	4851d64feee9694c

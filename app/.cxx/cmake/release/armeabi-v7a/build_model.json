@@ -41,7 +41,10 @@
     "gradleBuildOutputFolder": "D:\\androidProject\\UART\\DKCloudID_AndroidDemo\\app\\.cxx\\cxx\\release",
     "isDebuggableEnabled": false,
     "validAbiList": [
-      "ARMEABI_V7A"
+      "ARMEABI_V7A",
+      "ARM64_V8A",
+      "X86",
+      "X86_64"
     ],
     "buildTargetSet": []
   },

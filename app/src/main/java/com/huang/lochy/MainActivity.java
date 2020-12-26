@@ -600,7 +600,6 @@ public class MainActivity extends AppCompatActivity {
 //        }
     }
 
-
     private void iniview() {
         final List<String> ports = serialManager.getAvailablePorts();  //获取可用的串口
         System.out.println("可用的串口列表为：" + ports.toString());

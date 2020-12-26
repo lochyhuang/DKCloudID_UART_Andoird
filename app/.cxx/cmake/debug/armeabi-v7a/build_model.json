@@ -5,6 +5,7 @@
       "sdkFolder": "D:\\Android\\sdk",
       "isNativeCompilerSettingsCacheEnabled": false,
       "isBuildOnlyTargetAbiEnabled": true,
+      "ideBuildTargetAbi": "armeabi-v7a,armeabi",
       "splitsAbiFilterSet": [],
       "intermediatesFolder": "D:\\androidProject\\UART\\DKCloudID_AndroidDemo\\app\\build\\intermediates",
       "gradleModulePathName": ":app",

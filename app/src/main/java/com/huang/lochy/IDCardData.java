@@ -1,7 +1,8 @@
 package com.huang.lochy;
 
 import android.graphics.Bitmap;
-import com.synjones.idcard.android.Wlt2Bitmap;
+import com.zkteco.android.IDReader.IDPhotoHelper;
+import com.zkteco.android.IDReader.WLTService;
 
 import java.io.UnsupportedEncodingException;
 
@@ -197,9 +198,9 @@ public class IDCardData {
             //照片解码
             if (photoMsgBytesLen > 0) {
                 try {
-                    byte[] buf=new byte[Wlt2Bitmap.IMG_LENGTH];
-                    if (1 == Wlt2Bitmap.wlt2Bmp (photoMsgBytes, buf)) {
-                        PhotoBmp = Wlt2Bitmap.Bgr2Bitmap (buf);
+                    byte[] buf=new byte[WLTService.imgLength];
+                    if (1 == WLTService.wlt2Bmp (photoMsgBytes, buf)) {
+                        PhotoBmp = IDPhotoHelper.Bgr2Bitmap (buf);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();

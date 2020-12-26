@@ -45,7 +45,7 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 build CMakeFiles/serial_port.dir/src/main/cpp/SerialPort.c.o: C_COMPILER__serial_port ../../../../src/main/cpp/SerialPort.c
   DEFINES = -Dserial_port_EXPORTS
   DEP_FILE = CMakeFiles\serial_port.dir\src\main\cpp\SerialPort.c.o.d
-  FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fno-addrsig -Wa,--noexecstack -Wformat -Werror=format-security  -O2 -DNDEBUG  -fPIC
+  FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -DNDEBUG  -fPIC
   IN_ABS = D:\androidProject\UART\DKCloudID_AndroidDemo\app\src\main\cpp\SerialPort.c
   OBJECT_DIR = CMakeFiles\serial_port.dir
   OBJECT_FILE_DIR = CMakeFiles\serial_port.dir\src\main\cpp
@@ -58,8 +58,8 @@ build CMakeFiles/serial_port.dir/src/main/cpp/SerialPort.c.o: C_COMPILER__serial
 # Link the shared library ..\..\..\..\build\intermediates\cmake\release\obj\arm64-v8a\libserial_port.so
 
 build ../../../../build/intermediates/cmake/release/obj/arm64-v8a/libserial_port.so: C_SHARED_LIBRARY_LINKER__serial_port CMakeFiles/serial_port.dir/src/main/cpp/SerialPort.c.o | D$:/Android/sdk/ndk-bundle/toolchains/llvm/prebuilt/windows-x86_64/sysroot/usr/lib/aarch64-linux-android/21/liblog.so
-  LANGUAGE_COMPILE_FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fno-addrsig -Wa,--noexecstack -Wformat -Werror=format-security  -O2 -DNDEBUG
-  LINK_FLAGS = -Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libatomic.a -static-libstdc++ -Wl,--build-id -Wl,--warn-shared-textrel -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments -Wl,-z,noexecstack
+  LANGUAGE_COMPILE_FLAGS = -g -DANDROID -fdata-sections -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -D_FORTIFY_SOURCE=2 -Wformat -Werror=format-security  -O2 -DNDEBUG
+  LINK_FLAGS = -Wl,--exclude-libs,libgcc.a -Wl,--exclude-libs,libgcc_real.a -Wl,--exclude-libs,libatomic.a -static-libstdc++ -Wl,--build-id -Wl,--fatal-warnings -Wl,--no-undefined -Qunused-arguments
   LINK_LIBRARIES = -llog -latomic -lm
   OBJECT_DIR = CMakeFiles\serial_port.dir
   POST_BUILD = cd .
