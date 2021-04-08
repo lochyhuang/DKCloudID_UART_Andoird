@@ -146,10 +146,10 @@ public class MainActivity extends AppCompatActivity {
                                         MZR_cmd_bytes[2] = (byte)0x30;
                                         System.arraycopy(MZR_bytes, 0, MZR_cmd_bytes, 3, MZR_bytes.length);
 
-                                        byte[] returnBytes = serialManager.sendWithReturn(MZR_cmd_bytes, 500);
+                                        byte[] returnBytes = serialManager.sendWithReturn(MZR_cmd_bytes, 1000);
                                         if (StringTool.byteHexToSting(returnBytes).equals("AA01FE")) {
                                             //==============================读取文件1======================================
-                                            returnBytes = serialManager.sendWithReturn(StringTool.hexStringToBytes("aa023101"), 200);
+                                            returnBytes = serialManager.sendWithReturn(StringTool.hexStringToBytes("aa023101"), 2000);
 
                                             //和校验
                                             byte bcc_sum = 0;
@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
                                             logViewln( "DG1File： " + dg1_String );
 
                                             //==============================读取文件11======================================
-                                            returnBytes = serialManager.sendWithReturn(StringTool.hexStringToBytes("aa02310B"), 200);
+                                            returnBytes = serialManager.sendWithReturn(StringTool.hexStringToBytes("aa02310B"), 2000);
 
                                             //和校验
                                             bcc_sum = 0;
@@ -374,6 +374,14 @@ public class MainActivity extends AppCompatActivity {
                                 if ( dkCloudID != null ) {
                                     dkCloudID.Close();
                                 }
+
+                                if (err_cnt++ < NUMBER_OF_REPARSING) {
+                                    logViewln( "正在重新解析.." );
+                                    serialManager.send(StringTool.hexStringToBytes("AA0118"));
+                                }
+                                else {
+                                    err_cnt = 0;
+                                }
                                 return;
                             }
 
@@ -390,11 +398,20 @@ public class MainActivity extends AppCompatActivity {
                                 if ( dkCloudID != null ) {
                                     dkCloudID.Close();
                                 }
+
+                                if (err_cnt++ < NUMBER_OF_REPARSING) {
+                                    logViewln( "正在重新解析.." );
+                                    serialManager.send(StringTool.hexStringToBytes("AA0118"));
+                                }
+                                else {
+                                    err_cnt = 0;
+                                }
                                 return;
                             }
 
                             switch ( data[3] ) {
                                 case SAM_V_INIT_COM:      //接收到开始解析请求
+                                    err_cnt = 0;
                                     System.out.println("开始解析");
                                     schedule = 1;
                                     runOnUiThread(new Runnable() {
@@ -410,7 +427,6 @@ public class MainActivity extends AppCompatActivity {
                                     dkCloudID = new DKCloudID();
                                     initData = Arrays.copyOfRange( data, 4, data.length - 1 );
                                     continue_to_parse(initData);
-
                                     break;
 
                                 case SAM_V_APDU_COM:

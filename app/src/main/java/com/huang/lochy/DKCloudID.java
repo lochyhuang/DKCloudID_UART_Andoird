@@ -26,7 +26,7 @@ public class DKCloudID {
         current_ip = isIp1OK ? ip1 : ip2;
         SocketAddress socketAddress = new InetSocketAddress(current_ip, port);
         try {
-            client.connect(socketAddress, 500);
+            client.connect(socketAddress, 1000);
         }catch (IOException e) {
             //连接服务器失败
             System.err.println("连接服务器失败：" + current_ip + ":" + port);
@@ -36,7 +36,7 @@ public class DKCloudID {
             client = new Socket();
             socketAddress = new InetSocketAddress(isIp1OK ? ip2 : ip1, port);
             try {
-                client.connect(socketAddress, 500);
+                client.connect(socketAddress, 1000);
             }catch (IOException e2) {
                 Close();
                 //连接备用服务器失败
