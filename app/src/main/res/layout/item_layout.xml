@@ -4,5 +4,4 @@
     android:id="@+id/textView"
     android:padding="5dp"
     android:layout_height="wrap_content">
-
 </TextView>

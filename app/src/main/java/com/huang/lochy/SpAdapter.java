@@ -7,8 +7,6 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import com.dk.uartnfc.R;
-
 /**
  * @author: liuwan
  * @date: 2018-05-28
@@ -48,7 +46,7 @@ public class SpAdapter extends BaseAdapter {
         ViewHodler hodler = null;
         if (convertView == null) {
             hodler = new ViewHodler();
-            convertView = LayoutInflater.from(mContext).inflate(R.layout.item_layout, null);
+            convertView = LayoutInflater.from(mContext).inflate(R.layout.item_layout, parent, false);
             hodler.mTextView = (TextView) convertView;
             convertView.setTag(hodler);
         } else {

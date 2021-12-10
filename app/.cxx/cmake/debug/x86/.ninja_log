@@ -1,0 +1,5 @@
+# ninja log v5
+2	405	0	CMakeFiles/serial_port.dir/src/main/cpp/SerialPort.c.o	49027a32631fc418
+406	1169	0	../../../../build/intermediates/cmake/debug/obj/x86/libserial_port.so	a797e68a77fc26e2
+5	401	0	CMakeFiles/serial_port.dir/src/main/cpp/SerialPort.c.o	49027a32631fc418
+402	1306	0	../../../../build/intermediates/cmake/debug/obj/x86/libserial_port.so	a797e68a77fc26e2

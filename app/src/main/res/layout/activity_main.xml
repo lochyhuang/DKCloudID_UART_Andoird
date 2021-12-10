@@ -9,6 +9,16 @@
     tools:context="com.huang.lochy.MainActivity">
 
 
+    <Button
+        android:id="@+id/bt_ota"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="3dp"
+        android:layout_marginBottom="8dp"
+        android:text="固件升级"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/bt_send" />
+
     <Spinner
         android:id="@+id/sp_bote"
         android:layout_width="100dp"
@@ -93,11 +103,11 @@
         android:id="@+id/bt_open"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
         android:text="开启串口"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/bt_send" />
+        app:layout_constraintEnd_toStartOf="@+id/bt_ota" />
 
     <TextView
         android:id="@+id/msgText"
@@ -105,13 +115,15 @@
         android:layout_height="0dp"
         android:layout_marginBottom="3dp"
         android:background="@android:drawable/editbox_background"
-        android:scrollbars="vertical"
         android:fadeScrollbars="false"
+        android:scrollbars="vertical"
         android:text=""
         android:textColorHint="#03A9F4"
         app:layout_constraintBottom_toTopOf="@+id/radioGroup"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
 
 </android.support.constraint.ConstraintLayout>
