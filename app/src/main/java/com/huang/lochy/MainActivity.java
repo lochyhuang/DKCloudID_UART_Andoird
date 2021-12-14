@@ -88,21 +88,23 @@ public class MainActivity extends AppCompatActivity {
                                 if (StringTool.byteHexToSting(data).equals("AA01EA")) {
                                     refreshLogView("卡片已拿开！\r\n");
                                     hidDialog();
-                                } else if ((data.length > 5)            //寻到IC卡，提取UID
-                                        && (data[0] == (byte) 0xAA)
-                                        && (data[2] == (byte) 0x01)) {
-                                    //截取UID
-                                    final byte[] uidBytes = new byte[(data[1] & 0xFF) - 2];
-                                    System.arraycopy(data, 4, uidBytes, 0, uidBytes.length);
-
-                                    runOnUiThread(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            msgTextView.setText("");
-                                            refreshLogView("寻卡卡片，UID: " + StringTool.byteHexToSting(uidBytes) + "\r\n");
-                                        }
-                                    });
-                                } else {
+                                }
+//                                else if ((data.length > 5)            //寻到IC卡，提取UID
+//                                        && (data[0] == (byte) 0xAA)
+//                                        && (data[2] == (byte) 0x01)) {
+//                                    //截取UID
+//                                    final byte[] uidBytes = new byte[(data[1] & 0xFF) - 2];
+//                                    System.arraycopy(data, 4, uidBytes, 0, uidBytes.length);
+//
+//                                    runOnUiThread(new Runnable() {
+//                                        @Override
+//                                        public void run() {
+//                                            msgTextView.setText("");
+//                                            refreshLogView("寻卡卡片，UID: " + StringTool.byteHexToSting(uidBytes) + "\r\n");
+//                                        }
+//                                    });
+//                                }
+                            else {
                                     runOnUiThread(new Runnable() {
                                         @Override
                                         public void run() {
