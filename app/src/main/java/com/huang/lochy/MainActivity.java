@@ -33,6 +33,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import static com.dk.uartnfc.SamVIdCard.SAM_V_FRAME_START_CODE;
 import static com.dk.uartnfc.SamVIdCard.SAM_V_INIT_COM;
@@ -59,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
 
     private ProgressDialog readWriteDialog = null;
 
+    final Semaphore semaphore = new Semaphore(1);
+
     @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         //语音初始化
-        myTTS = new MyTTS(this);
+        myTTS = new MyTTS(MainActivity.this);
 
         //串口初始化
         serialManager = new SerialManager();
@@ -114,6 +118,15 @@ public class MainActivity extends AppCompatActivity {
                                     });
                                 }
                             } else if ((data.length >= 3) && (data[0] == SAM_V_FRAME_START_CODE) && (data[3] == SAM_V_INIT_COM)) {
+                                try {
+                                    if ( !semaphore.tryAcquire(10, TimeUnit.MILLISECONDS) ) {
+                                        return;
+                                    }
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                    return;
+                                }
+
                                 //校验数据
                                 try {
                                     SamVIdCard.verify(data);
@@ -124,7 +137,6 @@ public class MainActivity extends AppCompatActivity {
                                     serialManager.send(StringTool.hexStringToBytes("AA0118"));
                                     return;
                                 }
-
 
                                 Log.d(TAG, "开始解析");
                                 logViewln(null);
@@ -165,6 +177,7 @@ public class MainActivity extends AppCompatActivity {
                                          * 显示身份证数据
                                          */
                                         showIDMsg(idCardData);
+                                        semaphore.release();
                                         //返回读取成功
                                         return;
                                     } catch (DKCloudIDException e) {   //服务器返回异常，重复5次解析
@@ -182,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
                                         myTTS.speak("请不要移动身份证");
                                         logViewln("正在重新解析..");
                                         serialManager.send(StringTool.hexStringToBytes("AA0118"));
+                                        semaphore.release();
                                         return;
                                     } finally {
                                         //读卡结束关闭进度条显示
@@ -196,6 +210,8 @@ public class MainActivity extends AppCompatActivity {
                                         });
                                     }
                                 } while (cnt++ < 5);  //如果服务器返回异常则重复读5次直到成功
+
+                                semaphore.release();
 
                             } else if (StringTool.byteHexToSting(data).equals("aa01ea")) {
                                 Log.d(TAG, "卡片已经拿开");
@@ -378,50 +394,50 @@ public class MainActivity extends AppCompatActivity {
         });
 
         msgTextView.setText("正在搜索设备...");
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                int i = 0;
-
-                for (String thePort:ports) {
-                    try {
-                        try {
-                            Thread.sleep(100);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-
-                        if (serialManager.open(thePort, "115200")) {
-                            byte[] bytes = serialManager.sendWithReturn(new byte[]{(byte) 0xAA, 0x01, (byte)0xB0}, 200);
-                            if (bytes[0] == (byte) 0xAA) {
-
-                                final int selection = i;
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        spSerial.setSelection(selection);
-                                        msgTextView.setText("找到串口" + selectSerialName + "上的设备");
-                                    }
-                                });
-
-                                try {
-                                    serialManager.sendWithReturn(StringTool.hexStringToBytes("AA0495FF1476"));  //配置NFC模块
-                                } catch (DeviceNoResponseException e1) {
-                                    e1.printStackTrace();
-                                }
-                                break;
-                            } else {
-                                serialManager.close();
-                            }
-                        }
-                    } catch (DeviceNoResponseException e) {
-                        e.printStackTrace();
-                        serialManager.close();
-                    }
-                    i++;
-                }
-            }
-        }).start();
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                int i = 0;
+//
+//                for (String thePort:ports) {
+//                    try {
+//                        try {
+//                            Thread.sleep(100);
+//                        } catch (InterruptedException e) {
+//                            e.printStackTrace();
+//                        }
+//
+//                        if (serialManager.open(thePort, "115200")) {
+//                            byte[] bytes = serialManager.sendWithReturn(new byte[]{(byte) 0xAA, 0x01, (byte)0xB0}, 200);
+//                            if (bytes[0] == (byte) 0xAA) {
+//
+//                                final int selection = i;
+//                                runOnUiThread(new Runnable() {
+//                                    @Override
+//                                    public void run() {
+//                                        spSerial.setSelection(selection);
+//                                        msgTextView.setText("找到串口" + selectSerialName + "上的设备");
+//                                    }
+//                                });
+//
+//                                try {
+//                                    serialManager.sendWithReturn(StringTool.hexStringToBytes("AA0495FF1476"));  //配置NFC模块
+//                                } catch (DeviceNoResponseException e1) {
+//                                    e1.printStackTrace();
+//                                }
+//                                break;
+//                            } else {
+//                                serialManager.close();
+//                            }
+//                        }
+//                    } catch (DeviceNoResponseException e) {
+//                        e.printStackTrace();
+//                        serialManager.close();
+//                    }
+//                    i++;
+//                }
+//            }
+//        }).start();
     }
 
     //更新按键状态
