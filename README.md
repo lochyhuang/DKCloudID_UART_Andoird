@@ -16,7 +16,7 @@ allprojects {
     }
 }
 ```
- **Step 2. 添加 implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v1.1.0' 到dependency** 
+ **Step 2. 添加 implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.0.0' 到dependency** 
 
 ```
 
@@ -33,73 +33,105 @@ dependencies {
 ```
  
  
- **Step 4. 初始化串口** 
+ **Step 4. 初始化设备并打开串口** 
 
 ```
 
-    serialManager = new SerialManager();
+	uartNfcDevice = new UartNfcDevice();
+	uartNfcDevice.setCallBack(deviceManagerCallback);
+	new Thread(new Runnable() {
+		@Override
+		public void run() {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+
+			uartNfcDevice.serialManager.open("/dev/ttyUSB0", "115200");
+		}
+	}).start();
 ```
 
  **Step 5. 添加读卡回调和读卡代码** 
 
 ```
 
-	//设置串口数据接收监听
-	serialManager.setOnReceiveDataListener(new SerialManager.onReceiveDataListener() {
-		@Override
-		public void OnReceiverData(String portNumberString, byte[] dataBytes) {
-			final String portNumber = portNumberString;
-			final byte[] data = dataBytes;
+    //设备操作类回调
+    private DeviceManagerCallback deviceManagerCallback = new DeviceManagerCallback() {
+        @Override
+        public void onReceiveRfnSearchCard(boolean blnIsSus, int cardType, byte[] bytCardSn, byte[] bytCarATS) {
+            super.onReceiveRfnSearchCard(blnIsSus, cardType, bytCardSn, bytCarATS);
+            System.out.println("Activity接收到激活卡片回调：UID->" + StringTool.byteHexToSting(bytCardSn) + " ATS->" + StringTool.byteHexToSting(bytCarATS));
 
-			synchronized (this) {
-				new Thread(new Runnable() {
-					@Override
-					public void run() {
-						if ((data.length >= 3) && (data[0] == SAM_V_FRAME_START_CODE) && (data[3] == SAM_V_INIT_COM)) {
-							//校验数据
-							try {
-								SamVIdCard.verify(data);
-							} catch (CardNoResponseException e) {
-								e.printStackTrace();
-								serialManager.send(StringTool.hexStringToBytes("AA0118"));
-								return;
-							}
+            final int cardTypeTemp = cardType;
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    //readWriteCardDemo(cardTypeTemp);  //普通卡读写API示例
+                }
+            }).start();
+        }
 
-							initData = Arrays.copyOfRange(data, 4, data.length - 1);
-							SamVIdCard samVIdCard = new SamVIdCard(serialManager, initData);
+        @Override
+        public void onReceiveSamVIdInit(byte[] initData) {
+            super.onReceiveSamVIdInit(initData);
 
-							//关闭上一次的云解码
-							idCard = new IDCard(samVIdCard);
-							int cnt = 0;
-							do {
-								try {
-									/**
-									 * 获取身份证数据
-									 * 注意：此方法为同步阻塞方式，需要一定时间才能返回身份证数据，期间身份证不能离开读卡器！
-									 */
-									IDCardData idCardData = idCard.getIDCardData();
+            final byte[] initDataTmp = initData;
 
-									/**
-									 * 显示身份证数据
-									 */
-									showIDMsg(idCardData);
-									//返回读取成功
-									return;
-								} catch (DKCloudIDException e) {   //服务器返回异常，重复5次解析
-									e.printStackTrace();
-								} catch (CardNoResponseException e) {    //卡片读取异常，直接退出，需要重新读卡
-									e.printStackTrace();
-									serialManager.send(StringTool.hexStringToBytes("AA0118"));
-									return;
-								}
-							} while (cnt++ < 5);  //如果服务器返回异常则重复读5次直到成功
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    dkcloudidDemo(initDataTmp);
+                }
+            }).start();
+        }
 
-						} else if (StringTool.byteHexToSting(data).equals("aa01ea") || StringTool.byteHexToSting(data).equals("AA01EA")) {
-							Log.d(TAG, "卡片已经拿开");
-						}
-					}
-				}).start();
-			}
-		}
-	});
+        @Override
+        public void onReceiveCardLeave() {
+            super.onReceiveCardLeave();
+            Log.d(TAG, "卡片已离开");
+        }
+    };
+	
+    //云解码Demo
+    private synchronized boolean dkcloudidDemo(byte[] initData) {
+        final Iso14443BIdCard card = (Iso14443BIdCard) uartNfcDevice.getCard();
+        if (card == null) {
+            Log.e(TAG, "未找到身份证");
+            return false;
+        }
+
+        Log.d(TAG, "开始解析");
+
+        idCard = new IDCard();
+		
+        try {
+            /**
+             * 获取身份证数据，带进度回调，如果不需要进度回调可以去掉进度回调参数或者传入null
+             * 注意：此方法为同步阻塞方式，需要一定时间才能返回身份证数据，期间身份证不能离开读卡器！
+             */
+            IDCardData idCardData = idCard.getIDCardData(card, 5);
+
+            /**
+             * 显示身份证数据
+             */
+            showIDMsg(idCardData);
+            //返回读取成功
+            return true;
+        } catch (DKCloudIDException e) {
+            e.printStackTrace();
+        } catch (CardNoResponseException e) {    //卡片读取异常，直接退出，需要重新读卡
+            e.printStackTrace();
+
+            //返回读取失败
+            try {
+                card.close();
+            } catch (CardNoResponseException cardNoResponseException) {
+                cardNoResponseException.printStackTrace();
+            }
+        }
+
+        return false;
+    }
 ```

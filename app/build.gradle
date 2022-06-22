@@ -4,7 +4,7 @@ android {
     compileSdkVersion 28
     buildToolsVersion '28.0.3'
     defaultConfig {
-        applicationId "com.dk.cloudid1"
+        applicationId "com.dk.cloudid"
         minSdkVersion 18
         targetSdkVersion 28
         versionCode 1
@@ -27,10 +27,6 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
-    implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v1.1.0'
-    //implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:cdn-v1.0.0-beta'
-
-    //固件升级文件选择要用到
-    implementation 'com.github.angads25:filepicker:1.1.1'
-    implementation 'org.greenrobot:eventbus:3.1.1'
+    implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.0.0'
+//    implementation project(path: ':dkcloudid_uart')
 }
