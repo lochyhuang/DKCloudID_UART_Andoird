@@ -21,7 +21,7 @@ allprojects {
 ```
 
 dependencies {
-        implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v1.1.0'
+        implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.0.0'
 }
 ```
 
