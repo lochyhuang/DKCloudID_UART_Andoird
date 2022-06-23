@@ -11,8 +11,8 @@
 ```
 allprojects {
     repositories {
-    ...
-    maven { url 'https://jitpack.io' }
+        ...
+        maven { url 'https://jitpack.io' }
     }
 }
 ```
@@ -21,7 +21,7 @@ allprojects {
 ```
 
 dependencies {
-        implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.0'
+    implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.0'
 }
 ```
 
@@ -37,36 +37,36 @@ dependencies {
 
 ```
 
-	//设备初始化
-	uartNfcDevice = new UartNfcDevice();
-	uartNfcDevice.setCallBack(deviceManagerCallback);
-	
-	//APP启动后延时1秒钟再打开串口
-	new Thread(new Runnable() {
-		@Override
-		public void run() {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+    //设备初始化
+    uartNfcDevice = new UartNfcDevice();
+    uartNfcDevice.setCallBack(deviceManagerCallback);
+    
+    //APP启动后延时1秒钟再打开串口
+    new Thread(new Runnable() {
+        @Override
+        public void run() {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
 
-			uartNfcDevice.serialManager.open("/dev/ttyUSB0", "115200");
-		}
-	}).start();
+            uartNfcDevice.serialManager.open("/dev/ttyUSB0", "115200");
+        }
+    }).start();
 ```
 
  **Step 5. 添加读卡回调** 
 
 ```
 
-	//设备操作类回调
+    //设备操作类回调
     private DeviceManagerCallback deviceManagerCallback = new DeviceManagerCallback() {
         //非接寻卡回调
         @Override
         public void onReceiveRfnSearchCard(boolean blnIsSus, int cardType, byte[] bytCardSn, byte[] bytCarATS) {
             super.onReceiveRfnSearchCard(blnIsSus, cardType, bytCardSn, bytCarATS);
-			
+            
             final int cardTypeTemp = cardType;
             new Thread(new Runnable() {
                 @Override
@@ -104,7 +104,7 @@ dependencies {
         public void onReceiveIDCardData(IDCardData idCardData) {
             super.onReceiveIDCardData(idCardData);
 
-			//显示身份证数据
+            //显示身份证数据
             showIDMsg(idCardData);
         }
 
