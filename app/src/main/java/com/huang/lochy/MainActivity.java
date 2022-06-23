@@ -34,6 +34,7 @@ import com.dk.uartnfc.DeviceManager.DeviceManager;
 import com.dk.uartnfc.DeviceManager.UartNfcDevice;
 import com.dk.uartnfc.Exception.CardNoResponseException;
 import com.dk.uartnfc.Exception.DKCloudIDException;
+import com.dk.uartnfc.Exception.DeviceNoResponseException;
 import com.dk.uartnfc.OTA.DialogUtils;
 import com.dk.uartnfc.OTA.YModem;
 import com.dk.uartnfc.Tool.StringTool;
@@ -58,13 +59,9 @@ public class MainActivity extends AppCompatActivity {
     static long time_start = 0;
     static long time_end = 0;
 
-    //    SerialManager serialManager;
     private UartNfcDevice uartNfcDevice;
     String selectSerialName;
     String selectBaudRate;
-
-    byte[] initData;
-    IDCard idCard = null;
 
     private ProgressDialog readWriteDialog = null;
 
@@ -96,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
 
     //设备操作类回调
     private DeviceManagerCallback deviceManagerCallback = new DeviceManagerCallback() {
+        //非接寻卡回调
         @Override
         public void onReceiveRfnSearchCard(boolean blnIsSus, int cardType, byte[] bytCardSn, byte[] bytCarATS) {
             super.onReceiveRfnSearchCard(blnIsSus, cardType, bytCardSn, bytCarATS);
@@ -110,118 +108,65 @@ public class MainActivity extends AppCompatActivity {
             }).start();
         }
 
+        //身份证开始请求云解析回调
         @Override
-        public void onReceiveSamVIdInit(byte[] initData) {
-            super.onReceiveSamVIdInit(initData);
+        public void onReceiveSamVIdStart(byte[] initData) {
+            super.onReceiveSamVIdStart(initData);
 
-            final byte[] initDataTmp = initData;
+            Log.d(TAG, "开始解析");
+            logViewln(null);
+            logViewln("正在读卡，请勿移动身份证!");
+            myTTS.speak("正在读卡，请勿移动身份证");
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    dkcloudidDemo(initDataTmp);
-                }
-            }).start();
+            time_start = System.currentTimeMillis();
         }
 
+        //身份证云解析进度回调
+        @Override
+        public void onReceiveSamVIdSchedule(int rate) {
+            super.onReceiveSamVIdSchedule(rate);
+            showReadWriteDialog("正在读取身份证信息,请不要移动身份证", rate);
+            if (rate == 100) {
+                time_end = System.currentTimeMillis();
+
+                /**
+                 * 这里已经完成读卡，可以拿开身份证了，在此提示用户读取成功或者打开蜂鸣器提示可以拿开身份证了
+                 */
+                myTTS.speak("读取成功");
+            }
+        }
+
+        //身份证云解析异常回调
+        @Override
+        public void onReceiveSamVIdException(String msg) {
+            super.onReceiveSamVIdException(msg);
+
+            //显示错误信息
+            logViewln(msg);
+
+            //读卡结束关闭进度条显示
+            hidDialog();
+        }
+
+        //身份证云解析明文结果回调
+        @Override
+        public void onReceiveIDCardData(IDCardData idCardData) {
+            super.onReceiveIDCardData(idCardData);
+
+            //显示身份证数据
+            showIDMsg(idCardData);
+        }
+
+        //卡片离开回调
         @Override
         public void onReceiveCardLeave() {
             super.onReceiveCardLeave();
             Log.d(TAG, "卡片已离开");
             logViewln("卡片已离开");
         }
-
-        @Override
-        public void onReceiveACK() {
-            super.onReceiveACK();
-        }
-
-        @Override
-        public void onReceiveNACK() {
-            super.onReceiveNACK();
-        }
     };
 
-    //云解码Demo
-    private synchronized boolean dkcloudidDemo(byte[] initData) {
-        final Iso14443BIdCard card = (Iso14443BIdCard) uartNfcDevice.getCard();
-        if (card == null) {
-            Log.e(TAG, "未找到身份证");
-            return false;
-        }
-
-        Log.d(TAG, "开始解析");
-        logViewln(null);
-        logViewln("正在读卡，请勿移动身份证!");
-        myTTS.speak("正在读卡，请勿移动身份证");
-
-        idCard = new IDCard();
-        time_start = System.currentTimeMillis();
-        try {
-            /**
-             * 获取身份证数据，带进度回调，如果不需要进度回调可以去掉进度回调参数或者传入null
-             * 注意：此方法为同步阻塞方式，需要一定时间才能返回身份证数据，期间身份证不能离开读卡器！
-             */
-            IDCardData idCardData = idCard.getIDCardData(card, 5, new IDCard.onReceiveScheduleListener() {
-                @Override
-                public void onReceiveSchedule(int rate) {  //读取进度回调
-                    showReadWriteDialog("正在读取身份证信息,请不要移动身份证", rate);
-                    if (rate == 100) {
-                        time_end = System.currentTimeMillis();
-                        /**
-                         * 这里已经完成读卡，可以开身份证了，在此提示用户读取成功或者打开蜂鸣器提示可以拿开身份证了
-                         */
-                        myTTS.speak("读取成功");
-
-                        //发送蜂鸣器控制命令
-                        //serialManager.send(StringTool.hexStringToBytes("AA03B20A01"));
-                    }
-                }
-            });
-
-            /**
-             * 显示身份证数据
-             */
-            showIDMsg(idCardData);
-            //返回读取成功
-            return true;
-        } catch (DKCloudIDException e) {   //服务器返回异常，重复5次解析
-            e.printStackTrace();
-
-            //显示错误信息
-            logViewln(e.getMessage());
-        } catch (CardNoResponseException e) {    //卡片读取异常，直接退出，需要重新读卡
-            e.printStackTrace();
-
-            //显示错误信息
-            logViewln(e.getMessage());
-
-            //返回读取失败
-            myTTS.speak("请不要移动身份证");
-            logViewln("正在重新解析..");
-            try {
-                card.close();
-            } catch (CardNoResponseException cardNoResponseException) {
-                cardNoResponseException.printStackTrace();
-            }
-            return false;
-        } finally {
-            //读卡结束关闭进度条显示
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (readWriteDialog.isShowing()) {
-                        readWriteDialog.dismiss();
-                    }
-                    readWriteDialog.setProgress(0);
-                }
-            });
-        }
-
-        return false;
-    }
-
-    //读写卡Demo
+    //普通IC读写卡API调用示例
     private synchronized boolean readWriteCardDemo(int cardType) {
         switch (cardType) {
             case DeviceManager.CARD_TYPE_ISO4443_A:   //寻到A CPU卡
@@ -290,51 +235,6 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
                         }
-
-//                        //羊城通
-//                        logViewln("指令1-发送：00A40400085943542E55534552");
-//                        String rsp = cpuCard.transceive("00A40400085943542E55534552", 1000);
-//                        logViewln("返回：" + rsp);
-//                        if ( !rsp.contains("9000") ) {
-//                            logViewln("指令2-发送：00A40400085041592E41505059 ");
-//                            rsp = cpuCard.transceive("00A40400085041592E41505059 ", 1000);
-//                            logViewln("返回：" + rsp);
-//                        }
-//
-//                        logViewln("指令3-发送：C4FE000000 ");
-//                        rsp = cpuCard.transceive("C4FE000000", 1000);
-//                        logViewln("返回：" + rsp);
-//
-//                        logViewln("指令4-发送：00A4000002DDF1");
-//                        rsp = cpuCard.transceive("00A4000002DDF1", 1000);
-//                        logViewln("返回：" + rsp);
-//
-//                        logViewln("指令5-发送：00B0950000");
-//                        rsp = cpuCard.transceive("00B0950000", 1000);
-//                        logViewln("返回：" + rsp);
-//
-//                        logViewln("指令6-发送：00A4000002ADF3");
-//                        rsp = cpuCard.transceive("00A4000002ADF3", 1000);
-//                        logViewln("返回：" + rsp);
-//
-//                        logViewln("指令7-发送：0020000003123456");
-//                        rsp = cpuCard.transceive("0020000003123456", 1000);
-//                        logViewln("返回：" + rsp);
-//
-//                        logViewln("指令8-发送：805000020B0100000000000000000000");
-//                        rsp = cpuCard.transceive("805000020B0100000000000000000000", 1000);
-//                        logViewln("返回：" + rsp);
-
-//                        //北京通
-//                        logViewln("选择文件命令：00A4040005D156000016");
-//                        String rsp = cpuCard.transceive("00A4040005D156000016", 1000);
-//                        logViewln("返回：" + rsp);
-//
-//                        for (int i=0; i<10; i++) {
-//                            logViewln("读第" + i + "条记录：00b20" + i + "2c00");
-//                            rsp = cpuCard.transceive("00b20" + i + "2c00", 1000);
-//                            logViewln("返回：" + rsp);
-//                        }
                     } catch (CardNoResponseException e) {
                         e.printStackTrace();
                     }
@@ -602,6 +502,19 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//
+//                uartNfcDevice.serialManager.open("/dev/ttyUSB0", "115200");
+//            }
+//        }).start();
     }
 
     //更新按键状态
@@ -707,10 +620,14 @@ public class MainActivity extends AppCompatActivity {
 
     //隐藏进度条
     private void hidDialog() {
+        //关闭进度条显示
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                readWriteDialog.dismiss();
+                if (readWriteDialog.isShowing()) {
+                    readWriteDialog.dismiss();
+                }
+                readWriteDialog.setProgress(0);
             }
         });
     }
