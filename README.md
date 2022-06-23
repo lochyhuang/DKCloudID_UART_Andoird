@@ -16,12 +16,12 @@ allprojects {
     }
 }
 ```
- **Step 2. 添加 implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.0' 到dependency** 
+ **Step 2. 添加 implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.1' 到dependency** 
 
 ```
 
 dependencies {
-    implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.0'
+    implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.1'
 }
 ```
 

@@ -27,6 +27,6 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
 
-    implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.0'
+    implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.1'
 //    implementation project(path: ':dkcloudid_uart')
 }

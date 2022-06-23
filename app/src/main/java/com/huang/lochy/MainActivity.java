@@ -20,21 +20,17 @@ import android.widget.Toast;
 
 import com.dk.uartnfc.Card.CpuCard;
 import com.dk.uartnfc.Card.DESFire;
-import com.dk.uartnfc.Card.DeviceManagerCallback;
 import com.dk.uartnfc.Card.FeliCa;
-import com.dk.uartnfc.Card.Iso14443BIdCard;
 import com.dk.uartnfc.Card.Iso14443bCard;
 import com.dk.uartnfc.Card.Iso15693Card;
 import com.dk.uartnfc.Card.Mifare;
 import com.dk.uartnfc.Card.Ntag21x;
 import com.dk.uartnfc.DKCloudID.DKCloudID;
-import com.dk.uartnfc.DKCloudID.IDCard;
 import com.dk.uartnfc.DKCloudID.IDCardData;
 import com.dk.uartnfc.DeviceManager.DeviceManager;
+import com.dk.uartnfc.DeviceManager.DeviceManagerCallback;
 import com.dk.uartnfc.DeviceManager.UartNfcDevice;
 import com.dk.uartnfc.Exception.CardNoResponseException;
-import com.dk.uartnfc.Exception.DKCloudIDException;
-import com.dk.uartnfc.Exception.DeviceNoResponseException;
 import com.dk.uartnfc.OTA.DialogUtils;
 import com.dk.uartnfc.OTA.YModem;
 import com.dk.uartnfc.Tool.StringTool;
@@ -43,8 +39,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
     final static String TAG = "DKCloudID";
@@ -84,11 +78,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (uartNfcDevice.serialManager != null) {
-            uartNfcDevice.serialManager.close();
-        }
-
-        DKCloudID.Close();
+        uartNfcDevice.destroy();
     }
 
     //设备操作类回调
