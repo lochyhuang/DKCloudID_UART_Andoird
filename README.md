@@ -16,12 +16,12 @@ allprojects {
     }
 }
 ```
- **Step 2. 添加 implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.1' 到dependency** 
+ **Step 2. 添加 implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.4' 到dependency** 
 
 ```
 
 dependencies {
-    implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.1'
+    implementation 'com.gitee.lochy:dkcloudid-uart-android-sdk:v2.1.4'
 }
 ```
 
@@ -41,12 +41,12 @@ dependencies {
     uartNfcDevice = new UartNfcDevice();
     uartNfcDevice.setCallBack(deviceManagerCallback);
     
-    //APP启动后延时1秒钟再打开串口
+    //APP启动后延时3秒钟再打开串口，根据安卓主板的特性，不同的安卓主板需要延时的时间不一样
     new Thread(new Runnable() {
         @Override
         public void run() {
             try {
-                Thread.sleep(1000);
+                Thread.sleep(3000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

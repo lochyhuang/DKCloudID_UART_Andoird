@@ -18,8 +18,10 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.dk.uartnfc.Card.Card;
 import com.dk.uartnfc.Card.CpuCard;
 import com.dk.uartnfc.Card.DESFire;
+import com.dk.uartnfc.Card.DeviceManagerCallback;
 import com.dk.uartnfc.Card.FeliCa;
 import com.dk.uartnfc.Card.Iso14443bCard;
 import com.dk.uartnfc.Card.Iso15693Card;
@@ -28,9 +30,9 @@ import com.dk.uartnfc.Card.Ntag21x;
 import com.dk.uartnfc.DKCloudID.DKCloudID;
 import com.dk.uartnfc.DKCloudID.IDCardData;
 import com.dk.uartnfc.DeviceManager.DeviceManager;
-import com.dk.uartnfc.DeviceManager.DeviceManagerCallback;
 import com.dk.uartnfc.DeviceManager.UartNfcDevice;
 import com.dk.uartnfc.Exception.CardNoResponseException;
+import com.dk.uartnfc.Exception.DeviceNoResponseException;
 import com.dk.uartnfc.OTA.DialogUtils;
 import com.dk.uartnfc.OTA.YModem;
 import com.dk.uartnfc.Tool.StringTool;
@@ -73,6 +75,24 @@ public class MainActivity extends AppCompatActivity {
 
         iniview();
         edInput.setText("aa020401");
+
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//                uartNfcDevice.serialManager.open("/dev/ttyUSB0", "115200");
+//
+//                try {
+//                    uartNfcDevice.serialManager.sendWithReturn(StringTool.hexStringToBytes("AA01B0"));
+//                } catch (DeviceNoResponseException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }).start();
     }
 
     @Override
@@ -93,7 +113,19 @@ public class MainActivity extends AppCompatActivity {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    readWriteCardDemo(cardTypeTemp);
+                    if (!readWriteCardDemo(cardTypeTemp)) {
+                        //读卡失败，自动重读
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    new Card(uartNfcDevice).close();
+                                } catch (CardNoResponseException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }).start();
+                    }
                 }
             }).start();
         }
@@ -164,68 +196,123 @@ public class MainActivity extends AppCompatActivity {
                 if (cpuCard != null) {
                     logViewln(null);
 
+//                    try {
+//                        byte[] atr = cpuCard.getAtr();
+//                        logViewln("寻到CPU卡->UID:" + cpuCard.uidToString() + " ATR:" + StringTool.byteHexToSting(atr));
+//
+//                        //选择深圳通主文件
+//                        byte[] bytApduRtnData = cpuCard.transceive(SZTCard.getSelectMainFileCmdByte());
+//                        if (bytApduRtnData.length <= 2) {
+//                            System.out.println("不是深圳通卡，当成银行卡处理！");
+//                            //选择储蓄卡交易文件
+//                            String cpuCardType;
+//                            bytApduRtnData = cpuCard.transceive(FinancialCard.getSelectDepositCardPayFileCmdBytes());
+//                            if (bytApduRtnData.length <= 2) {
+//                                System.out.println("不是储蓄卡，当成借记卡处理！");
+//                                //选择借记卡交易文件
+//                                bytApduRtnData = cpuCard.transceive(FinancialCard.getSelectDebitCardPayFileCmdBytes());
+//                                if (bytApduRtnData.length <= 2) {
+//                                    logViewln("未知CPU卡！");
+//                                    return false;
+//                                }
+//                                else {
+//                                    cpuCardType = "储蓄卡";
+//                                }
+//                            }
+//                            else {
+//                                cpuCardType = "借记卡";
+//                            }
+//
+//                            bytApduRtnData = cpuCard.transceive(FinancialCard.getCardNumberCmdBytes());
+//                            //提取银行卡卡号
+//                            String cardNumberString = FinancialCard.extractCardNumberFromeRturnBytes(bytApduRtnData);
+//                            if (cardNumberString == null) {
+//                                logViewln("未知CPU卡！");
+//                                return false;
+//                            }
+//                            logViewln("储蓄卡卡号：" + cardNumberString);
+//
+//                            //读交易记录
+//                            System.out.println("发送APDU指令-读10条交易记录");
+//                            for (int i = 1; i <= 10; i++) {
+//                                bytApduRtnData = cpuCard.transceive(FinancialCard.getTradingRecordCmdBytes((byte) i));
+//                                logViewln(FinancialCard.extractTradingRecordFromeRturnBytes(bytApduRtnData));
+//                            }
+//                        }
+//                        else {  //深圳通处理流程
+//                            bytApduRtnData = cpuCard.transceive(SZTCard.getBalanceCmdByte());
+//                            if (SZTCard.getBalance(bytApduRtnData) == null) {
+//                                logViewln("未知CPU卡！");
+//                                System.out.println("未知CPU卡！");
+//                                return false;
+//                            }
+//                            else {
+//                                logViewln("深圳通余额：" + SZTCard.getBalance(bytApduRtnData));
+//                                System.out.println("余额：" + SZTCard.getBalance(bytApduRtnData));
+//                                //读交易记录
+//                                System.out.println("发送APDU指令-读10条交易记录");
+//                                for (int i = 1; i <= 10; i++) {
+//                                    bytApduRtnData = cpuCard.transceive(SZTCard.getTradeCmdByte((byte) i));
+//                                    logViewln("\r\n" + SZTCard.getTrade(bytApduRtnData));
+//                                }
+//                            }
+//                        }
+//                    } catch (CardNoResponseException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                    try {
+//                        //北京通
+//                        logViewln("选择文件命令：00A4040005D156000016");
+//                        String rsp = cpuCard.transceive("00A4040005D156000016", 1000);
+//                        logViewln("返回：" + rsp);
+//
+//                        for (int i=0; i<10; i++) {
+//                            logViewln("读第" + i + "条记录：00b20" + i + "2c00");
+//                            rsp = cpuCard.transceive("00b20" + i + "2c00", 1000);
+//                            logViewln("返回：" + rsp);
+//                        }
+//                    } catch (CardNoResponseException e) {
+//                        e.printStackTrace();
+//                    }
+
+//                    try {
+//                        BJTCard bjtCard = new BJTCard(uartNfcDevice);
+//                        boolean isSuc = bjtCard.connect();
+//                        if (isSuc) {
+//                            String name = bjtCard.getName();
+//                            logViewln("姓名：" + name);
+//
+//                            String cardNumber = bjtCard.getCardNumber();
+//                            logViewln("卡号：" + cardNumber);
+//
+////                            String financialCardNumber = bjtCard.getFinancialCardNumber();
+////                            logViewln("银行卡卡号：" + financialCardNumber);
+//                        }
+//                        else {
+//                            logViewln("读取失败，请刷北京通");
+//                        }
+
                     try {
-                        byte[] atr = cpuCard.getAtr();
-                        logViewln("寻到CPU卡->UID:" + cpuCard.uidToString() + " ATR:" + StringTool.byteHexToSting(atr));
-
-                        //选择深圳通主文件
-                        byte[] bytApduRtnData = cpuCard.transceive(SZTCard.getSelectMainFileCmdByte());
-                        if (bytApduRtnData.length <= 2) {
-                            System.out.println("不是深圳通卡，当成银行卡处理！");
-                            //选择储蓄卡交易文件
-                            String cpuCardType;
-                            bytApduRtnData = cpuCard.transceive(FinancialCard.getSelectDepositCardPayFileCmdBytes());
-                            if (bytApduRtnData.length <= 2) {
-                                System.out.println("不是储蓄卡，当成借记卡处理！");
-                                //选择借记卡交易文件
-                                bytApduRtnData = cpuCard.transceive(FinancialCard.getSelectDebitCardPayFileCmdBytes());
-                                if (bytApduRtnData.length <= 2) {
-                                    logViewln("未知CPU卡！");
-                                    return false;
-                                }
-                                else {
-                                    cpuCardType = "储蓄卡";
-                                }
-                            }
-                            else {
-                                cpuCardType = "借记卡";
-                            }
-
-                            bytApduRtnData = cpuCard.transceive(FinancialCard.getCardNumberCmdBytes());
-                            //提取银行卡卡号
-                            String cardNumberString = FinancialCard.extractCardNumberFromeRturnBytes(bytApduRtnData);
-                            if (cardNumberString == null) {
-                                logViewln("未知CPU卡！");
-                                return false;
-                            }
-                            logViewln("储蓄卡卡号：" + cardNumberString);
-
-                            //读交易记录
-                            System.out.println("发送APDU指令-读10条交易记录");
-                            for (int i = 1; i <= 10; i++) {
-                                bytApduRtnData = cpuCard.transceive(FinancialCard.getTradingRecordCmdBytes((byte) i));
-                                logViewln(FinancialCard.extractTradingRecordFromeRturnBytes(bytApduRtnData));
-                            }
+                        logViewln("发送:" + "00A404040000");
+                        String rsp = cpuCard.transceive("00A404040000");
+                        logViewln("接收:" + rsp);
+                        if ((rsp == null) || !rsp.contains("9000")) {
+                            return false;
                         }
-                        else {  //深圳通处理流程
-                            bytApduRtnData = cpuCard.transceive(SZTCard.getBalanceCmdByte());
-                            if (SZTCard.getBalance(bytApduRtnData) == null) {
-                                logViewln("未知CPU卡！");
-                                System.out.println("未知CPU卡！");
-                                return false;
-                            }
-                            else {
-                                logViewln("深圳通余额：" + SZTCard.getBalance(bytApduRtnData));
-                                System.out.println("余额：" + SZTCard.getBalance(bytApduRtnData));
-                                //读交易记录
-                                System.out.println("发送APDU指令-读10条交易记录");
-                                for (int i = 1; i <= 10; i++) {
-                                    bytApduRtnData = cpuCard.transceive(SZTCard.getTradeCmdByte((byte) i));
-                                    logViewln("\r\n" + SZTCard.getTrade(bytApduRtnData));
-                                }
-                            }
+
+                        logViewln("发送:" + "80CA004400");
+                        rsp = cpuCard.transceive("80CA004400");
+                        logViewln("接收:" + rsp);
+                        if ((rsp == null) || !rsp.contains("9000")) {
+                            return false;
                         }
-                    } catch (CardNoResponseException e) {
+
+                        String SEID = rsp.replace("9000", "");
+                        logViewln("SEID=" + SEID);
+
+                        return true;
+                    }catch (CardNoResponseException e) {
                         e.printStackTrace();
                     }
                 }
@@ -273,24 +360,44 @@ public class MainActivity extends AppCompatActivity {
 
                     try {
                         //配置密钥到NFC模块，此密钥在读取时会用到
-                        boolean status = mifare.setKey(Mifare.MIFARE_KEY_TYPE_A, Mifare.MIFARE_DEFAULT_KEY);
+                        boolean status = mifare.setKey(Mifare.MIFARE_KEY_TYPE_B, Mifare.MIFARE_DEFAULT_KEY);
                         if (status) {
-                            logViewln("配置默认密钥A到模块成功");
+                            logViewln("配置默认密钥B到模块成功");
                         }
                         else {
-                            logViewln("配置默认密钥A到模块失败");
+                            logViewln("配置默认密钥B到模块失败");
                             break;
                         }
-                        status = mifare.write(1, new byte[] {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16});
-                        if (status) {
-                            logViewln("写数据01020304050607080910111213141516到块1成功");
+
+//                        status = mifare.write(1, new byte[] {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16});
+//                        if (status) {
+//                            logViewln("写数据01020304050607080910111213141516到块1成功");
+//                        }
+//                        else {
+//                            logViewln("写数据01020304050607080910111213141516到块1失败");
+//                        }
+
+                        byte[] rspBytes = mifare.read((byte)0x14);
+                        if ( (rspBytes != null) && (rspBytes.length == 16)) {
+                            logViewln("读取到块1数据：" + StringTool.byteHexToSting(rspBytes));
+                            //16进制转10进制-大端
+                            int uid2 = (rspBytes[3] & 0xff) + ((rspBytes[2] & 0xff) << 8) + ((rspBytes[1] & 0xff) << 16) + ((rspBytes[0] & 0xff) << 24);
+                            String uidString = String.format("%d", (long)uid2 & 0xffffffffL);
+                            System.out.println( "UID大端=" + uidString );
+                            logViewln("UID大端=" + uidString);
                         }
                         else {
-                            logViewln("写数据01020304050607080910111213141516到块1失败");
+                            logViewln("读取到块0x14数据失败");
                         }
-
-                        byte[] rspBytes = mifare.read(1);
-                        logViewln("读取到块1数据：" + StringTool.byteHexToSting(rspBytes));
+//                        for (int i=0; i<64; i++) {
+//                            try {
+//                                rspBytes = mifare.read(i);
+//                                logViewln("读取到块" + i + "数据：" + StringTool.byteHexToSting(rspBytes));
+//                            } catch (CardNoResponseException e1) {
+//                                e1.printStackTrace();
+//                                logViewln("读取到块" + i + "数据失败");
+//                            }
+//                        }
                     } catch (CardNoResponseException e) {
                         e.printStackTrace();
                     }
@@ -492,19 +599,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                try {
-//                    Thread.sleep(1000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//
-//                uartNfcDevice.serialManager.open("/dev/ttyUSB0", "115200");
-//            }
-//        }).start();
     }
 
     //更新按键状态
@@ -540,7 +634,7 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                if (msgTextView.length() > 1000) {
+                if (msgTextView.length() > 5000) {
                     msgTextView.setText("");
                 }
                 msgTextView.append(msg + "\r\n");

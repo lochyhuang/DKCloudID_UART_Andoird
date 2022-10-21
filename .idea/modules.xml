@@ -4,6 +4,9 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/DKCloudID_AndroidDemo.iml" filepath="$PROJECT_DIR$/.idea/modules/DKCloudID_AndroidDemo.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/DKCloudID_AndroidDemo.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/DKCloudID_AndroidDemo.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/DKCloudID_AndroidDemo.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/DKCloudID_AndroidDemo.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/DKCloudID_AndroidDemo.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/DKCloudID_AndroidDemo.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/DKCloudID_AndroidDemo.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/DKCloudID_AndroidDemo.app.unitTest.iml" />
     </modules>
   </component>
 </project>
