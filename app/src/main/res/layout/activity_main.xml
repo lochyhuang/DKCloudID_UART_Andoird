@@ -33,24 +33,24 @@
         android:id="@+id/sp_serial"
         android:layout_width="100dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
         android:layout_marginStart="8dp"
+        android:layout_marginBottom="8dp"
         app:layout_constraintBottom_toTopOf="@+id/bt_open"
         app:layout_constraintStart_toEndOf="@+id/textView2" />
 
     <EditText
-        android:background="#fff"
-        android:textSize="14sp"
         android:id="@+id/ed_input"
         android:layout_width="0dp"
         android:layout_height="30dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginEnd="8dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:inputType="text|textPersonName"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#fff"
         android:hint="请输入命令"
+        android:inputType="text|textPersonName"
         android:maxLines="1"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="@+id/bt_send"
         app:layout_constraintEnd_toStartOf="@+id/bt_open"
         app:layout_constraintStart_toStartOf="parent"
@@ -60,8 +60,8 @@
         android:id="@+id/bt_send"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
         android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
         android:text="发送"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -70,31 +70,30 @@
         android:id="@+id/radioGroup"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
         android:layout_marginStart="8dp"
+        android:layout_marginBottom="8dp"
         android:orientation="horizontal"
         app:layout_constraintBottom_toTopOf="@+id/sp_serial"
-        app:layout_constraintStart_toStartOf="parent">
-    </RadioGroup>
+        app:layout_constraintStart_toStartOf="parent"></RadioGroup>
 
     <TextView
-        android:textColor="#000"
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:text="串口号:"
+        android:textColor="#000"
         app:layout_constraintBottom_toBottomOf="@+id/sp_serial"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/sp_serial" />
 
     <TextView
-        android:textColor="#000"
         android:id="@+id/textView3"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:text="波特率:"
+        android:textColor="#000"
         app:layout_constraintBottom_toBottomOf="@+id/sp_serial"
         app:layout_constraintStart_toEndOf="@+id/sp_serial"
         app:layout_constraintTop_toTopOf="@+id/sp_serial" />
@@ -123,7 +122,17 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintTop_toBottomOf="@+id/delayTextView"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <TextView
+        android:id="@+id/delayTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="TextView"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

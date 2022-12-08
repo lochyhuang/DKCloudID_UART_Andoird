@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/androidProject/UART/DKCloudID_UART_Andoird/app/src/main/res/layout/activity_main.xml" value="0.3536458333333333" />
+        <entry key="..\:/androidProject/UART/DKCloudID_UART_Andoird/app/src/main/res/layout/layout.xml" value="0.3536458333333333" />
+      </map>
+    </option>
+  </component>
   <component name="NullableNotNullManager">
     <option name="myDefaultNullable" value="android.support.annotation.Nullable" />
     <option name="myDefaultNotNull" value="android.support.annotation.NonNull" />

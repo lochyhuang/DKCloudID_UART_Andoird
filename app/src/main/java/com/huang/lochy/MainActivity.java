@@ -18,28 +18,35 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.dk.log.DKLog;
+import com.dk.log.DKLogCallback;
 import com.dk.uartnfc.Card.Card;
 import com.dk.uartnfc.Card.CpuCard;
 import com.dk.uartnfc.Card.DESFire;
-import com.dk.uartnfc.Card.DeviceManagerCallback;
 import com.dk.uartnfc.Card.FeliCa;
 import com.dk.uartnfc.Card.Iso14443bCard;
 import com.dk.uartnfc.Card.Iso15693Card;
 import com.dk.uartnfc.Card.Mifare;
 import com.dk.uartnfc.Card.Ntag21x;
-import com.dk.uartnfc.DKCloudID.DKCloudID;
+import com.dk.uartnfc.Card.YCTCard;
 import com.dk.uartnfc.DKCloudID.IDCardData;
+import com.dk.uartnfc.DeviceManager.Command;
 import com.dk.uartnfc.DeviceManager.DeviceManager;
+import com.dk.uartnfc.DeviceManager.DeviceManagerCallback;
 import com.dk.uartnfc.DeviceManager.UartNfcDevice;
 import com.dk.uartnfc.Exception.CardNoResponseException;
 import com.dk.uartnfc.Exception.DeviceNoResponseException;
-import com.dk.uartnfc.OTA.DialogUtils;
 import com.dk.uartnfc.OTA.YModem;
 import com.dk.uartnfc.Tool.StringTool;
+import com.dk.uartnfc.UartManager.DKMessageDef;
 
-import java.io.File;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Arrays;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -48,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     final String[] botes = new String[]{"9600", "19200", "38400", "57600", "115200", "230400", "460800", "500000", "576000", "921600", "1000000", "1152000"};
 
     private TextView msgTextView;
+    private TextView delayTextView = null;
     private Spinner spSerial;
     private EditText edInput;
     private Button btOpen;
@@ -58,6 +66,9 @@ public class MainActivity extends AppCompatActivity {
     private UartNfcDevice uartNfcDevice;
     String selectSerialName;
     String selectBaudRate;
+
+    private static String server_delay = "";
+    private static int net_status = 1;
 
     private ProgressDialog readWriteDialog = null;
 
@@ -70,29 +81,104 @@ public class MainActivity extends AppCompatActivity {
         //语音初始化
         myTTS = new MyTTS(MainActivity.this);
 
+        //设备初始化
         uartNfcDevice = new UartNfcDevice();
         uartNfcDevice.setCallBack(deviceManagerCallback);
 
-        iniview();
-        edInput.setText("aa020401");
+        //设置本地安全模块解码模式（需要带安全模块的读卡模块才支持此模式）
+        //uartNfcDevice.setSamvMode(DeviceManager.SAMV_MODE_LOCAL);
 
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                try {
-//                    Thread.sleep(1000);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//                uartNfcDevice.serialManager.open("/dev/ttyUSB0", "115200");
-//
-//                try {
-//                    uartNfcDevice.serialManager.sendWithReturn(StringTool.hexStringToBytes("AA01B0"));
-//                } catch (DeviceNoResponseException e) {
-//                    e.printStackTrace();
-//                }
-//            }
-//        }).start();
+        //UI初始化
+        iniview();
+        edInput.setText("AA09A108041456FF0001EF");
+
+        //日志初始化
+        DKLog.setLogCallback(logCallback);
+
+        //打开串口
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                String portName = "/dev/ttyS2";
+                boolean isSuc = uartNfcDevice.serialManager.open(portName, "115200");
+                if (isSuc) {
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    logViewln(portName + " 打开成功");
+                    try {
+                        uartNfcDevice.serialManager.sendWithReturn(StringTool.hexStringToBytes("AA09A108041456FF0001EF"));
+
+                        logViewln("模块固件版本：" + uartNfcDevice.getFirmwareVersion());
+                    } catch (DeviceNoResponseException e) {
+                        e.printStackTrace();
+                    }
+                }
+                else {
+                    logViewln(portName + "打开失败，请手动选择正确的串口号并点击打开按键");
+                }
+            }
+        }).start();
+
+        //网络状态Demo线程
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (true) {
+                    String lost = new String();
+                    String delay = new String();
+
+                    try {
+                        Process p = Runtime.getRuntime().exec("ping -c 1 -w 10 " + "www.dkcloudid.cn");
+                        net_status = p.waitFor();
+                        //DKLog.d(TAG, "Process:" + net_status );
+
+                        if (net_status == 0) {
+                            BufferedReader buf = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                            String str = new String();
+                            while (true) {
+                                try {
+                                    if (!((str = buf.readLine()) != null)) break;
+                                } catch (IOException e) {
+                                    DKLog.e(TAG, e);
+                                }
+
+                                if (str.contains("avg")) {
+                                    int i = str.indexOf("/", 20);
+                                    int j = str.indexOf(".", i);
+
+                                    delay = str.substring(i + 1, j);
+                                    server_delay = delay;
+                                }
+                            }
+
+                            //DKLog.d(TAG, "延迟:" + delay + "ms");
+                        }
+                        else {
+                            //DKLog.d(TAG, "网络未连接！");
+                        }
+                    } catch (Exception e) {
+                        DKLog.e(TAG, e);
+                    }
+
+                    showNETDelay();
+
+                    try {
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                    }
+                }
+            }
+        }).start();
     }
 
     @Override
@@ -101,30 +187,53 @@ public class MainActivity extends AppCompatActivity {
         uartNfcDevice.destroy();
     }
 
+    //日志回调
+    private DKLogCallback logCallback = new DKLogCallback() {
+        @Override
+        public void onReceiveLogI(String tag, String msg) {
+            super.onReceiveLogI(tag, msg);
+            Log.i(tag, msg);
+            logViewln("[I] " + msg);
+        }
+
+        @Override
+        public void onReceiveLogD(String tag, String msg) {
+            super.onReceiveLogD(tag, msg);
+            Log.d(tag, msg);
+            logViewln("[D] " + msg);
+        }
+
+        @Override
+        public void onReceiveLogE(String tag, String msg) {
+            super.onReceiveLogE(tag, msg);
+            Log.e(tag, msg);
+            logViewln("[E] " + msg);
+        }
+    };
+
     //设备操作类回调
     private DeviceManagerCallback deviceManagerCallback = new DeviceManagerCallback() {
         //非接寻卡回调
         @Override
         public void onReceiveRfnSearchCard(boolean blnIsSus, int cardType, byte[] bytCardSn, byte[] bytCarATS) {
             super.onReceiveRfnSearchCard(blnIsSus, cardType, bytCardSn, bytCarATS);
-            System.out.println("Activity接收到激活卡片回调：UID->" + StringTool.byteHexToSting(bytCardSn) + " ATS->" + StringTool.byteHexToSting(bytCarATS));
+            System.out.println("Activity接收到激活卡片回调：UID->" + StringTool.byteHexToSting(bytCardSn) + " ATS->" + StringTool.byteHexToSting(bytCarATS) + "cardType=" + cardType);
+            if (cardType == 7) {
+                logViewln(null);
+                logViewln("寻到125KID卡->UID:" + StringTool.byteHexToSting(bytCardSn));
+                return;
+            }
 
             final int cardTypeTemp = cardType;
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    if (!readWriteCardDemo(cardTypeTemp)) {
-                        //读卡失败，自动重读
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                try {
-                                    new Card(uartNfcDevice).close();
-                                } catch (CardNoResponseException e) {
-                                    e.printStackTrace();
-                                }
-                            }
-                        }).start();
+                    if ( !readWriteCardDemo(cardTypeTemp) ) {
+//                        try {
+//                            new Card(uartNfcDevice).close();
+//                        } catch (CardNoResponseException e) {
+//                            e.printStackTrace();
+//                        }
                     }
                 }
             }).start();
@@ -195,126 +304,7 @@ public class MainActivity extends AppCompatActivity {
                 final CpuCard cpuCard = (CpuCard) uartNfcDevice.getCard();
                 if (cpuCard != null) {
                     logViewln(null);
-
-//                    try {
-//                        byte[] atr = cpuCard.getAtr();
-//                        logViewln("寻到CPU卡->UID:" + cpuCard.uidToString() + " ATR:" + StringTool.byteHexToSting(atr));
-//
-//                        //选择深圳通主文件
-//                        byte[] bytApduRtnData = cpuCard.transceive(SZTCard.getSelectMainFileCmdByte());
-//                        if (bytApduRtnData.length <= 2) {
-//                            System.out.println("不是深圳通卡，当成银行卡处理！");
-//                            //选择储蓄卡交易文件
-//                            String cpuCardType;
-//                            bytApduRtnData = cpuCard.transceive(FinancialCard.getSelectDepositCardPayFileCmdBytes());
-//                            if (bytApduRtnData.length <= 2) {
-//                                System.out.println("不是储蓄卡，当成借记卡处理！");
-//                                //选择借记卡交易文件
-//                                bytApduRtnData = cpuCard.transceive(FinancialCard.getSelectDebitCardPayFileCmdBytes());
-//                                if (bytApduRtnData.length <= 2) {
-//                                    logViewln("未知CPU卡！");
-//                                    return false;
-//                                }
-//                                else {
-//                                    cpuCardType = "储蓄卡";
-//                                }
-//                            }
-//                            else {
-//                                cpuCardType = "借记卡";
-//                            }
-//
-//                            bytApduRtnData = cpuCard.transceive(FinancialCard.getCardNumberCmdBytes());
-//                            //提取银行卡卡号
-//                            String cardNumberString = FinancialCard.extractCardNumberFromeRturnBytes(bytApduRtnData);
-//                            if (cardNumberString == null) {
-//                                logViewln("未知CPU卡！");
-//                                return false;
-//                            }
-//                            logViewln("储蓄卡卡号：" + cardNumberString);
-//
-//                            //读交易记录
-//                            System.out.println("发送APDU指令-读10条交易记录");
-//                            for (int i = 1; i <= 10; i++) {
-//                                bytApduRtnData = cpuCard.transceive(FinancialCard.getTradingRecordCmdBytes((byte) i));
-//                                logViewln(FinancialCard.extractTradingRecordFromeRturnBytes(bytApduRtnData));
-//                            }
-//                        }
-//                        else {  //深圳通处理流程
-//                            bytApduRtnData = cpuCard.transceive(SZTCard.getBalanceCmdByte());
-//                            if (SZTCard.getBalance(bytApduRtnData) == null) {
-//                                logViewln("未知CPU卡！");
-//                                System.out.println("未知CPU卡！");
-//                                return false;
-//                            }
-//                            else {
-//                                logViewln("深圳通余额：" + SZTCard.getBalance(bytApduRtnData));
-//                                System.out.println("余额：" + SZTCard.getBalance(bytApduRtnData));
-//                                //读交易记录
-//                                System.out.println("发送APDU指令-读10条交易记录");
-//                                for (int i = 1; i <= 10; i++) {
-//                                    bytApduRtnData = cpuCard.transceive(SZTCard.getTradeCmdByte((byte) i));
-//                                    logViewln("\r\n" + SZTCard.getTrade(bytApduRtnData));
-//                                }
-//                            }
-//                        }
-//                    } catch (CardNoResponseException e) {
-//                        e.printStackTrace();
-//                    }
-//
-//                    try {
-//                        //北京通
-//                        logViewln("选择文件命令：00A4040005D156000016");
-//                        String rsp = cpuCard.transceive("00A4040005D156000016", 1000);
-//                        logViewln("返回：" + rsp);
-//
-//                        for (int i=0; i<10; i++) {
-//                            logViewln("读第" + i + "条记录：00b20" + i + "2c00");
-//                            rsp = cpuCard.transceive("00b20" + i + "2c00", 1000);
-//                            logViewln("返回：" + rsp);
-//                        }
-//                    } catch (CardNoResponseException e) {
-//                        e.printStackTrace();
-//                    }
-
-//                    try {
-//                        BJTCard bjtCard = new BJTCard(uartNfcDevice);
-//                        boolean isSuc = bjtCard.connect();
-//                        if (isSuc) {
-//                            String name = bjtCard.getName();
-//                            logViewln("姓名：" + name);
-//
-//                            String cardNumber = bjtCard.getCardNumber();
-//                            logViewln("卡号：" + cardNumber);
-//
-////                            String financialCardNumber = bjtCard.getFinancialCardNumber();
-////                            logViewln("银行卡卡号：" + financialCardNumber);
-//                        }
-//                        else {
-//                            logViewln("读取失败，请刷北京通");
-//                        }
-
-                    try {
-                        logViewln("发送:" + "00A404040000");
-                        String rsp = cpuCard.transceive("00A404040000");
-                        logViewln("接收:" + rsp);
-                        if ((rsp == null) || !rsp.contains("9000")) {
-                            return false;
-                        }
-
-                        logViewln("发送:" + "80CA004400");
-                        rsp = cpuCard.transceive("80CA004400");
-                        logViewln("接收:" + rsp);
-                        if ((rsp == null) || !rsp.contains("9000")) {
-                            return false;
-                        }
-
-                        String SEID = rsp.replace("9000", "");
-                        logViewln("SEID=" + SEID);
-
-                        return true;
-                    }catch (CardNoResponseException e) {
-                        e.printStackTrace();
-                    }
+                    logViewln("寻到CPU卡->UID:" + cpuCard.uidToString());
                 }
                 break;
             case DeviceManager.CARD_TYPE_FELICA:  //寻到FeliCa
@@ -326,106 +316,21 @@ public class MainActivity extends AppCompatActivity {
             case DeviceManager.CARD_TYPE_ULTRALIGHT: //寻到Ultralight卡
                 final Ntag21x ntag21x = (Ntag21x) uartNfcDevice.getCard();
                 if (ntag21x != null) {
-                    try {
-                        logViewln("寻到Ultralight卡->UID:" + ntag21x.uidToString());
-
-                        //任意长度读写Demo,不带进度回调方式
-                        byte[] writeBytes = new byte[100];
-                        Arrays.fill(writeBytes, (byte) 0xAA);
-                        logViewln("开始写100个字节数据：0xAA");
-                        boolean isSuc = ntag21x.longWrite((byte) 4, writeBytes);
-                        if (isSuc) {
-                            logViewln("写数据成功！");
-                            logViewln("开始读10个字节数据");
-                            byte[] readTempBytes = ntag21x.longRead((byte) 4, (byte) (100 / 4));
-                            logViewln("读取成功：\r\n" + StringTool.byteHexToSting(readTempBytes));
-                        }
-                        else {
-                            logViewln("写数据失败！");
-                        }
-
-                        //NDEF Demo
-
-                    } catch (CardNoResponseException e) {
-                        e.printStackTrace();
-                    }
+                    logViewln("寻到Ultralight卡->UID:" + ntag21x.uidToString());
                 }
                 break;
             case DeviceManager.CARD_TYPE_MIFARE:   //寻到Mifare卡
                 final Mifare mifare = (Mifare) uartNfcDevice.getCard();
-                if (mifare != null) {
-                    logViewln(null);
-                    logViewln("寻到Mifare卡->UID:" + mifare.uidToString());
-                    Log.d(TAG, "寻到Mifare卡->UID:" + mifare.uidToString());
-
-                    try {
-                        //配置密钥到NFC模块，此密钥在读取时会用到
-                        boolean status = mifare.setKey(Mifare.MIFARE_KEY_TYPE_B, Mifare.MIFARE_DEFAULT_KEY);
-                        if (status) {
-                            logViewln("配置默认密钥B到模块成功");
-                        }
-                        else {
-                            logViewln("配置默认密钥B到模块失败");
-                            break;
-                        }
-
-//                        status = mifare.write(1, new byte[] {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16});
-//                        if (status) {
-//                            logViewln("写数据01020304050607080910111213141516到块1成功");
-//                        }
-//                        else {
-//                            logViewln("写数据01020304050607080910111213141516到块1失败");
-//                        }
-
-                        byte[] rspBytes = mifare.read((byte)0x14);
-                        if ( (rspBytes != null) && (rspBytes.length == 16)) {
-                            logViewln("读取到块1数据：" + StringTool.byteHexToSting(rspBytes));
-                            //16进制转10进制-大端
-                            int uid2 = (rspBytes[3] & 0xff) + ((rspBytes[2] & 0xff) << 8) + ((rspBytes[1] & 0xff) << 16) + ((rspBytes[0] & 0xff) << 24);
-                            String uidString = String.format("%d", (long)uid2 & 0xffffffffL);
-                            System.out.println( "UID大端=" + uidString );
-                            logViewln("UID大端=" + uidString);
-                        }
-                        else {
-                            logViewln("读取到块0x14数据失败");
-                        }
-//                        for (int i=0; i<64; i++) {
-//                            try {
-//                                rspBytes = mifare.read(i);
-//                                logViewln("读取到块" + i + "数据：" + StringTool.byteHexToSting(rspBytes));
-//                            } catch (CardNoResponseException e1) {
-//                                e1.printStackTrace();
-//                                logViewln("读取到块" + i + "数据失败");
-//                            }
-//                        }
-                    } catch (CardNoResponseException e) {
-                        e.printStackTrace();
-                    }
-                }
+//                if (mifare != null) {
+//                    logViewln(null);
+//                    logViewln("寻到Mifare卡->UID:" + mifare.uidToString());
+//                }
                 break;
             case DeviceManager.CARD_TYPE_ISO15693: //寻到15693卡
                 final Iso15693Card iso15693Card = (Iso15693Card) uartNfcDevice.getCard();
                 if (iso15693Card != null) {
                     logViewln(null);
                     logViewln("寻到15693卡->UID:" + iso15693Card.uidToString());
-                    logViewln("读块0数据：");
-                    try {
-                        boolean status = iso15693Card.write(1, new byte[] {0x01, 0x01, 0x03, 0x04});
-                        if (status) {
-                            logViewln("写数据01020304到块1成功");
-                        }
-                        else {
-                            logViewln("写数据01020304到块1失败");
-                        }
-
-                        byte[] rsp = iso15693Card.read(1);
-                        logViewln("块1数据：" + StringTool.byteHexToSting(rsp));
-
-                        rsp = iso15693Card.ReadMultiple(0, 10);
-                        logViewln("块0-块10数据：" + StringTool.byteHexToSting(rsp));
-                    } catch (CardNoResponseException e) {
-                        e.printStackTrace();
-                    }
                 }
                 break;
             case DeviceManager.CARD_TYPE_DESFire:
@@ -438,6 +343,13 @@ public class MainActivity extends AppCompatActivity {
                 final Iso14443bCard iso14443bCard = (Iso14443bCard) uartNfcDevice.getCard();
                 if (iso14443bCard != null) {
                     logViewln("寻到iso14443b卡->UID:" + iso14443bCard.uidToString());
+                    try {
+                        logViewln("发送:" + "0084000008");
+                        byte[] rsp = iso14443bCard.transceive(StringTool.hexStringToBytes("0084000008"), 1000);
+                        logViewln("接收:" + StringTool.byteHexToSting(rsp));
+                    } catch (CardNoResponseException e) {
+                        e.printStackTrace();
+                    }
                 }
                 break;
         }
@@ -453,6 +365,10 @@ public class MainActivity extends AppCompatActivity {
         Button btSend = (Button) findViewById(R.id.bt_send);
         Spinner spBote = (Spinner) findViewById(R.id.sp_bote);
         Button btOTA = (Button) findViewById(R.id.bt_ota);
+        delayTextView = findViewById(R.id.delayTextView);
+
+        msgTextView.setKeyListener(null);
+        msgTextView.setTextIsSelectable(true);
 
         readWriteDialog = new ProgressDialog(MainActivity.this);
         readWriteDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
@@ -533,52 +449,69 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
+                final InputStream file = getResources().openRawResource(R.raw.dk26me_v7c);
+
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
                         //让模块进入升级模式
                         uartNfcDevice.serialManager.send(StringTool.hexStringToBytes("AA0124"));
-                    }
-                }).start();
 
-                DialogUtils.select_file(MainActivity.this, new DialogUtils.DialogSelection() {
-                    @Override
-                    public void onSelectedFilePaths(String[] files) {
-                        if (files.length == 1) {
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+                                try {
+                                    new YModem(uartNfcDevice.serialManager).send(file, new YModem.onReceiveScheduleListener() {
+                                        @Override
+                                        public void onReceiveSchedule(int rate) {  //读取进度回调
+                                            showReadWriteDialog("正在升级", rate);
+                                        }
+                                    });
 
-                            final String fileName = files[0];
-                            new Thread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    try {
-                                        new YModem(uartNfcDevice.serialManager).send(new File(fileName), new YModem.onReceiveScheduleListener() {
-                                            @Override
-                                            public void onReceiveSchedule(int rate) {  //读取进度回调
-                                                showReadWriteDialog("正在升级", rate);
+                                    logViewln( "升级成功，正在等待模块重启..." );
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                                finally {
+                                    //读卡结束关闭进度条显示
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            if (readWriteDialog.isShowing()) {
+                                                readWriteDialog.dismiss();
                                             }
-                                        });
+                                            readWriteDialog.setProgress(0);
+                                        }
+                                    });
+                                }
 
-                                        logViewln( "升级成功" );
-                                    } catch (IOException e) {
+                                int cnt = 0;
+                                String version = null;
+                                do {
+                                    try {
+                                        version = uartNfcDevice.getFirmwareVersion();
+                                        break;
+                                    } catch (DeviceNoResponseException e) {
                                         e.printStackTrace();
                                     }
-                                    finally {
-                                        //读卡结束关闭进度条显示
-                                        runOnUiThread(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                if (readWriteDialog.isShowing()) {
-                                                    readWriteDialog.dismiss();
-                                                }
-                                                readWriteDialog.setProgress(0);
-                                            }
-                                        });
+
+                                    try {
+                                        Thread.sleep(500);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
                                     }
+                                }while (cnt++ < 10);
+                                logViewln( null );
+                                if ( (version == null) || (!version.equals("7C")) ) {
+                                    logViewln("升级失败，当前固件版本：" + version);
                                 }
-                            }).start();
-                        }
+                                else {
+                                    logViewln("升级成功，当前固件版本：" + version);
+                                }
+                            }
+                        }).start();
                     }
-                });
+                }).start();
             }
         });
 
@@ -634,13 +567,44 @@ public class MainActivity extends AppCompatActivity {
                     return;
                 }
 
-                if (msgTextView.length() > 5000) {
-                    msgTextView.setText("");
-                }
+//                if (msgTextView.length() > 1000) {
+//                    msgTextView.setText("");
+//                }
                 msgTextView.append(msg + "\r\n");
                 int offset = msgTextView.getLineCount() * msgTextView.getLineHeight();
                 if(offset > msgTextView.getHeight()){
                     msgTextView.scrollTo(0,offset-msgTextView.getHeight());
+                }
+            }
+        });
+    }
+
+    //显示网络延迟
+    private void showNETDelay() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if ( (net_status == 0) && (server_delay != null) && (server_delay.length() > 0) ) {
+                    int delay = Integer.parseInt(server_delay);
+                    String pj = "优";
+                    if (delay < 30) {
+                        pj = "优";
+                        delayTextView.setTextColor(0xF000ff00);
+                    } else if (delay < 50) {
+                        pj = "良";
+                        delayTextView.setTextColor(0xF0EEC900);
+                    } else if (delay < 100) {
+                        pj = "差";
+                        delayTextView.setTextColor(0xF0FF0000);
+                    } else {
+                        pj = "极差";
+                        delayTextView.setTextColor(0xF0B22222);
+                    }
+                    delayTextView.setText("网络延迟：" + server_delay + "ms " + " 等级：" + pj);
+                }
+                else {
+                    delayTextView.setTextColor(0xF0B22222);
+                    delayTextView.setText("网络未连接！");
                 }
             }
         });
@@ -652,6 +616,10 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                if (uartNfcDevice.samvMode == uartNfcDevice.SAMV_MODE_LOCAL) {
+                    time_end = System.currentTimeMillis();
+                }
+                msgTextView.setText("");
                 msgTextView.setText("解析成功，读卡用时:" + (time_end - time_start) + "ms\r\n" + idCardData.toString() + "\r\n");
 
                 SpannableString ss = new SpannableString(msgTextView.getText().toString()+"[smile]");
